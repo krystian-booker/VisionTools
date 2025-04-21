@@ -27,7 +27,6 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
 sudo apt install -y python3.10 python3.10-venv python3.10-distutils
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
-sudo apt install -y python3-colcon-common-extensions
 
 #AprilTag3 dependencies
 sudo apt install build-essential cmake git
@@ -51,6 +50,7 @@ sudo apt install ros-humble-desktop
 source /opt/ros/humble/setup.bash
 
 echo "source /opt/ros/humble/setup.bash" >> $HOME/.bashrc
+sudo apt install -y python3-colcon-common-extensions
 
 #ROS2 camera support
 sudo apt update
