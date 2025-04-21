@@ -28,17 +28,9 @@ sudo apt update
 sudo apt install -y python3.10 python3.10-venv python3.10-distutils
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
 
-#AprilTag3
-# sudo apt install build-essential cmake git
-# sudo apt install libopencv-dev
-# git clone https://github.com/AprilRobotics/apriltag.git
-# cd apriltag
-# mkdir build
-# cd build
-# cmake ..
-# make -j$(nproc)
-# sudo make install
-# sudo ldconfig
+#AprilTag3 dependencies
+sudo apt install build-essential cmake git
+sudo apt install libopencv-dev
 
 #ROS2
 sudo apt install software-properties-common
@@ -67,5 +59,15 @@ sudo apt install ros-humble-v4l2-camera ros-humble-image-transport ros-humble-cv
 sudo apt install ros-$ROS_DISTRO-gtsam
 
 #Setup ROS2 workspace
-git clone https://github.com/krystian-booker/ROS2FRC.git
+git clone --recurse-submodules https://github.com/krystian-booker/ROS2FRC.git
 cd ROS2FRC
+
+# AprilTag3 build
+cd src
+cd apriltag
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+sudo ldconfig
