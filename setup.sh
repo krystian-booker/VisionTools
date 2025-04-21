@@ -27,6 +27,7 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
 sudo apt install -y python3.10 python3.10-venv python3.10-distutils
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+sudo apt install -y python3-colcon-common-extensions
 
 #AprilTag3 dependencies
 sudo apt install build-essential cmake git
@@ -71,3 +72,19 @@ cmake ..
 make -j$(nproc)
 sudo make install
 sudo ldconfig
+
+#apriltag_msgs
+cd ..
+cd .. #should be back in src folder now
+cd apriltag_msgs
+colcon build
+source install/setup.bash
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/install/setup.bash"
+
+#apriltag_ros
+cd .. #should be back in src folder now
+cd apriltag_ros
+source /opt/ros/humble/setup.bash
+colcon build
+source install/setup.bash
+source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/install/setup.bash"
