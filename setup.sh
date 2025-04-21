@@ -1,3 +1,6 @@
+# Ask for sudo up front
+sudo -v
+
 echo "Installing all requirements..."
 sudo apt update
 
@@ -18,6 +21,25 @@ sudo locale-gen en_US en_US.UTF-8
 sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 export LANG=en_US.UTF-8
 
+#Python
+sudo apt install -y software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install -y python3.10 python3.10-venv python3.10-distutils
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+
+#AprilTag3
+# sudo apt install build-essential cmake git
+# sudo apt install libopencv-dev
+# git clone https://github.com/AprilRobotics/apriltag.git
+# cd apriltag
+# mkdir build
+# cd build
+# cmake ..
+# make -j$(nproc)
+# sudo make install
+# sudo ldconfig
+
 #ROS2
 sudo apt install software-properties-common
 sudo add-apt-repository universe
@@ -35,4 +57,15 @@ sudo apt install ros-humble-desktop
 
 source /opt/ros/humble/setup.bash
 
-echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+echo "source /opt/ros/humble/setup.bash" >> $HOME/.bashrc
+
+#ROS2 camera support
+sudo apt update
+sudo apt install ros-humble-v4l2-camera ros-humble-image-transport ros-humble-cv-bridge
+
+#ROS2 GTSAM
+sudo apt install ros-$ROS_DISTRO-gtsam
+
+#Setup ROS2 workspace
+git clone https://github.com/krystian-booker/ROS2FRC.git
+cd ROS2FRC
