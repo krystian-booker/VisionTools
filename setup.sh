@@ -1,90 +1,110 @@
+#!/bin/bash
+set -e
+
 # Ask for sudo up front
 sudo -v
 
 echo "Installing all requirements..."
-sudo apt update
+sudo apt update && sudo apt upgrade -y
 
-# VSCode
-sudo apt-get install wget gpg
-wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
-sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
-echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" |sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
-rm -f packages.microsoft.gpg
+####################################
+# Essentials
+####################################
+sudo apt install -y wget curl gpg apt-transport-https software-properties-common build-essential cmake git locales
 
-sudo apt install apt-transport-https
-sudo apt update
-sudo apt install code
-
-# Set local
-sudo apt update && sudo apt install locales
+####################################
+# Set locale
+####################################
 sudo locale-gen en_US en_US.UTF-8
 sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 export LANG=en_US.UTF-8
 
-#Python
-sudo apt install -y software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt update
-sudo apt install -y python3.10 python3.10-venv python3.10-distutils
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+####################################
+# Install VSCode
+####################################
+echo "Installing VSCode..."
+if ! command -v code &> /dev/null; then
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/packages.microsoft.gpg > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
+    sudo apt update
+    sudo apt install -y code
+fi
 
-#AprilTag3 dependencies
-sudo apt install build-essential cmake git
-sudo apt install libopencv-dev
+####################################
+# Install Python
+####################################
+echo "Installing Python..."
+if ! python3.10 --version &> /dev/null; then
+    sudo add-apt-repository -y ppa:deadsnakes/ppa
+    sudo apt update
+    sudo apt install -y python3.10 python3.10-venv python3.10-distutils
+    sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+fi
 
-#ROS2
-sudo apt install software-properties-common
-sudo add-apt-repository universe
+####################################
+# AprilTag3 dependencies
+####################################
+sudo apt install -y libopencv-dev
 
-sudo apt update && sudo apt install curl -y
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+####################################
+# Install ROS 2 Humble
+####################################
+echo "Installing ROS2 Humble..."
+if [ ! -f /etc/apt/sources.list.d/ros2.list ]; then
+    sudo add-apt-repository universe -y
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | sudo tee /usr/share/keyrings/ros-archive-keyring.gpg > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+    sudo apt update
+fi
 
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+sudo apt install -y ros-humble-desktop python3-colcon-common-extensions \
+                    ros-humble-v4l2-camera ros-humble-image-transport ros-humble-cv-bridge \
+                    python3-rosdep
 
-sudo apt update
-
-sudo apt upgrade
-
-sudo apt install ros-humble-desktop
-
+# Add ROS to bashrc if not already there
+grep -qxF 'source /opt/ros/humble/setup.bash' ~/.bashrc || echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 source /opt/ros/humble/setup.bash
 
-echo "source /opt/ros/humble/setup.bash" >> $HOME/.bashrc
-sudo apt install -y python3-colcon-common-extensions
+# GTSAM
+sudo apt install -y ros-$ROS_DISTRO-gtsam
 
-#ROS2 camera support
-sudo apt update
-sudo apt install ros-humble-v4l2-camera ros-humble-image-transport ros-humble-cv-bridge
+####################################
+# Setup ROS2 workspace
+####################################
+echo "Setting up ROS2 workspace..."
+WORKSPACE_DIR=~/ROS2FRC
 
-#ROS2 GTSAM
-sudo apt install ros-$ROS_DISTRO-gtsam
+# Clone workspace if it doesn't exist
+if [ ! -d "$WORKSPACE_DIR" ]; then
+    git clone --recurse-submodules https://github.com/krystian-booker/ROS2FRC.git "$WORKSPACE_DIR"
+fi
 
-#Setup ROS2 workspace
-git clone --recurse-submodules https://github.com/krystian-booker/ROS2FRC.git
-cd ROS2FRC
-
-# AprilTag3 build
-cd src
-cd apriltag
-mkdir build
-cd build
+# Build AprilTag3
+echo "Building AprilTag3..."
+cd "$WORKSPACE_DIR/src/apriltag"
+mkdir -p build && cd build
 cmake ..
 make -j$(nproc)
 sudo make install
 sudo ldconfig
 
-#apriltag_msgs
-cd ..
-cd .. #should be back in src folder now
-cd apriltag_msgs
-colcon build
-source install/setup.bash
-source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/install/setup.bash"
+# Source workspace setup file helper
+source_workspace() {
+    local setup_file="$1/install/setup.bash"
+    if [ -f "$setup_file" ]; then
+        source "$setup_file"
+    fi
+}
 
-#apriltag_ros
-cd .. #should be back in src folder now
-cd apriltag_ros
-source /opt/ros/humble/setup.bash
-colcon build
-source install/setup.bash
-source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/install/setup.bash"
+# Back to workspace root
+cd "$WORKSPACE_DIR"
+
+# Install dependencies and build full workspace
+echo "Resolving dependencies with rosdep..."
+sudo rosdedp init
+rosdep update
+rosdep install --from-paths src --ignore-src -r -y
+
+echo "Building full workspace..."
+colcon build --symlink-install
+
