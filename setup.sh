@@ -68,6 +68,9 @@ source /opt/ros/humble/setup.bash
 # GTSAM
 sudo apt install -y ros-$ROS_DISTRO-gtsam
 
+# Force shell rehash
+hash -r
+
 ####################################
 # Setup ROS2 workspace
 ####################################
@@ -81,10 +84,10 @@ fi
 
 # Build AprilTag3
 echo "Building AprilTag3..."
-cd "$WORKSPACE_DIR/src/apriltag"
-mkdir -p build && cd build
+cd "$WORKSPACE_DIR/src/apriltag" || exit 1
+mkdir -p build && cd build || exit 1
 cmake ..
-make -j$(nproc)
+make -j"$(nproc)"
 sudo make install
 sudo ldconfig
 
@@ -93,18 +96,19 @@ source_workspace() {
     local setup_file="$1/install/setup.bash"
     if [ -f "$setup_file" ]; then
         source "$setup_file"
+    else
+        echo "Warning: Could not find setup file at $setup_file"
     fi
 }
 
 # Back to workspace root
-cd "$WORKSPACE_DIR"
+cd "$WORKSPACE_DIR" || exit 1
 
 # Install dependencies and build full workspace
 echo "Resolving dependencies with rosdep..."
-sudo rosdedp init
+sudo rosdep init 2>/dev/null || echo "rosdep already initialized"
 rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 
 echo "Building full workspace..."
 colcon build --symlink-install
-
