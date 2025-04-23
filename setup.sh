@@ -41,13 +41,14 @@ curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo ap
 sudo apt update
 sudo apt install -y ros-noetic-desktop-full
 
-source ~/.bashrc
-sudo apt install -y python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
-sudo apt-get install -y ros-noetic-catkin
+# Source ROS now for this script to use its commands
+source /opt/ros/noetic/setup.bash
 
-# Setup environment
+# Add to bashrc for future terminals
 echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
-source ~/.bashrc
+
+sudo apt install -y python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
+sudo apt install -y ros-noetic-catkin
 
 # Initialize rosdep
 if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
