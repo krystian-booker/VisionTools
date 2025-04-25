@@ -53,7 +53,7 @@ sudo apt install -y ros-noetic-catkin
 ####################################
 # Install USB Camera Driver
 ####################################
-sudo apt install -y ros-noetic-usb-cam
+sudo apt install -y ros-noetic-usb-cam ros-noetic-camera-info-manager ros-noetic-diagnostic-updater ros-noetic-dynamic-reconfigure ros-noetic-image-exposure-msgs ros-noetic-image-transport ros-noetic-nodelet ros-noetic-roscpp ros-noetic-sensor-msgs ros-noetic-wfov-camera-msgs
 
 ####################################
 # Install additional camera drivers
