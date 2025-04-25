@@ -50,20 +50,22 @@ echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 sudo apt install -y python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
 sudo apt install -y ros-noetic-catkin
 
+####################################
+# Install USB Camera Driver
+####################################
+sudo apt install -y ros-noetic-usb-cam
+
+####################################
+# Install additional camera drivers
+####################################
+if [ -f ./camera_install.sh ]; then
+    echo "Found camera_install.sh, running it first..."
+    chmod +x ./camera_install.sh
+    ./camera_install.sh
+fi
+
 # Initialize rosdep
 if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
     sudo rosdep init
 fi
 rosdep update
-
-#just testing
-mkdir -p ~/catkin_ws/src
-cd ~/catkin_ws/
-catkin_make
-source devel/setup.bash
-echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
-source ~/.bashrc
-cd ~/catkin_ws/src
-catkin_create_pkg beginner_tutorials std_msgs rospy roscpp
-cd ~/catkin_ws
-catkin_make
