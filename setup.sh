@@ -72,11 +72,19 @@ fi
 rosdep update
 
 ####################################
-# Install TagSLAM requirements
+# Build & Python prerequisites (TagSLAM + Kalibr)
 ####################################
-sudo apt-get install -y python3-vcstool
-sudo apt-get install -y python3-catkin-tools python3-osrf-pycommon
+sudo apt-get install -y python3-vcstool python3-catkin-tools python3-osrf-pycommon \
+  autoconf automake nano libeigen3-dev libboost-all-dev libsuitesparse-dev doxygen \
+  libopencv-dev libpoco-dev libtbb-dev libblas-dev liblapack-dev libv4l-dev \
+  python3-dev python3-pip python3-scipy python3-matplotlib ipython3 python3-wxgtk4.0 \
+  python3-tk python3-igraph python3-pyx \
+  ###— Kalibr-specific extras —###
+  libgoogle-glog-dev libgflags-dev libglew-dev
 
+####################################
+# TagSLAM setup
+####################################
 # Remove existing GTSAM if installed
 if dpkg -l | grep -q "^ii  gtsam "; then
     sudo apt-get remove -y gtsam
@@ -93,13 +101,27 @@ sudo add-apt-repository -y ppa:borglab/gtsam-release-4.1
 sudo apt-get update
 sudo apt-get install -y libgtsam-dev libgtsam-unstable-dev
 
-# Clone repositories
+####################################
+# Clone/update repositories
+####################################
 cd ~/ROS2FRC/
-vcs import --recursive . < src/tagslam_root/tagslam_root.repos
+vcs import --recursive . < src/tagslam_root/tagslam_root.repos   # TagSLAM
+# (Kalibr is already present as a git sub-module inside src)
 
-# Install ROS dependencies
+####################################
+# Resolve ROS dependencies
+####################################
 rosdep install --from-paths src --ignore-src -r -y
 
-# Build TagSLAM
-catkin config -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBoost_NO_BOOST_CMAKE=ON
-catkin build
+####################################
+# Configure and build the whole workspace (TagSLAM + Kalibr)
+####################################
+catkin config --merge-devel --extend /opt/ros/noetic \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DBoost_NO_BOOST_CMAKE=ON
+catkin build -j"$(nproc)"
+
+# Optional: source the workspace so Kalibr is on the ROS path for this shell
+source devel/setup.bash
+
+echo "✅  TagSLAM and Kalibr have been built successfully!"
