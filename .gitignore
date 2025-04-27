@@ -8,6 +8,7 @@ install/
 # ROS logs
 log/
 *.log
+logs/
 
 # ROS cache files
 rosinstall/
