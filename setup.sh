@@ -79,7 +79,6 @@ sudo apt-get install -y python3-vcstool python3-catkin-tools python3-osrf-pycomm
   libopencv-dev libpoco-dev libtbb-dev libblas-dev liblapack-dev libv4l-dev \
   python3-dev python3-pip python3-scipy python3-matplotlib ipython3 python3-wxgtk4.0 \
   python3-tk python3-igraph python3-pyx \
-  ###— Kalibr-specific extras —###
   libgoogle-glog-dev libgflags-dev libglew-dev
 
 ####################################
