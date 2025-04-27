@@ -46,6 +46,7 @@ source /opt/ros/noetic/setup.bash
 
 # Add to bashrc for future terminals
 echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+source ~/.bashrc
 
 sudo apt install -y python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
 sudo apt install -y ros-noetic-catkin
@@ -69,3 +70,27 @@ if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
     sudo rosdep init
 fi
 rosdep update
+
+####################################
+# Install TagSLAM requirements
+####################################
+# sudo apt install -y python3-vcstool
+# sudo apt install -y python3-catkin-tools python3-osrf-pycommon
+
+# if dpkg -l | grep -q "^ii  gtsam "; then
+#     sudo apt remove -y gtsam
+# fi
+
+# sudo add-apt-repository -y --remove ppa:bernd-pfrommer/gtsam
+# sudo apt-add-repository -y --remove ppa:borglab/gtsam-release-4.0
+# sudo apt-add-repository -y ppa:borglab/gtsam-release-4.1
+# sudo apt update
+# sudo apt install -y libgtsam-dev libgtsam-unstable-dev
+# sudo apt install -y --reinstall libboost-all-dev
+
+
+# # TODO: FIX, clone git first.
+# sudo apt install -y libboost-all-dev
+
+# cd ~/ROS2FRC/src/tagslam_root
+# vcs import --recursive < tagslam_root.repos
