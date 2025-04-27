@@ -74,23 +74,24 @@ rosdep update
 ####################################
 # Install TagSLAM requirements
 ####################################
-# sudo apt install -y python3-vcstool
-# sudo apt install -y python3-catkin-tools python3-osrf-pycommon
+sudo apt install python3-vcstool
+sudo apt install python3-catkin-tools python3-osrf-pycommon # Ubuntu >20.04
 
-# if dpkg -l | grep -q "^ii  gtsam "; then
-#     sudo apt remove -y gtsam
-# fi
+if dpkg -l | grep -q "^ii  gtsam "; then
+    sudo apt remove -y gtsam
+fi
 
-# sudo add-apt-repository -y --remove ppa:bernd-pfrommer/gtsam
-# sudo apt-add-repository -y --remove ppa:borglab/gtsam-release-4.0
-# sudo apt-add-repository -y ppa:borglab/gtsam-release-4.1
-# sudo apt update
-# sudo apt install -y libgtsam-dev libgtsam-unstable-dev
-# sudo apt install -y --reinstall libboost-all-dev
+sudo add-apt-repository --remove ppa:bernd-pfrommer/gtsam
+sudo apt-add-repository --remove ppa:borglab/gtsam-release-4.0
+sudo apt-add-repository ppa:borglab/gtsam-release-4.1
+sudo apt update
+sudo apt install libgtsam-dev libgtsam-unstable-dev
 
+cd ~/ROS2FRC/
+vcs import --recursive . < src/tagslam_root/tagslam_root.repos
+rosdep install --from-paths src --ignore-src -r -y
 
-# # TODO: FIX, clone git first.
-# sudo apt install -y libboost-all-dev
-
-# cd ~/ROS2FRC/src/tagslam_root
-# vcs import --recursive < tagslam_root.repos
+# Working TagSLAM build
+catkin clean -y
+catkin config -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBoost_NO_BOOST_CMAKE=ON 
+catkin build
