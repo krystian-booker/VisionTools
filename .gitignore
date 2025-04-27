@@ -40,5 +40,8 @@ __pycache__/
 
 # TagSLAM specific (if they generate anything cached)
 tagslam_output/
-
 logs/apriltag_ros/
+src/apriltag
+src/flex_sync
+src/tagslam
+src/tagslam_viz
