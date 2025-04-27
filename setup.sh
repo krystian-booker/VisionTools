@@ -74,24 +74,32 @@ rosdep update
 ####################################
 # Install TagSLAM requirements
 ####################################
-sudo apt install python3-vcstool
-sudo apt install python3-catkin-tools python3-osrf-pycommon # Ubuntu >20.04
+sudo apt-get install -y python3-vcstool
+sudo apt-get install -y python3-catkin-tools python3-osrf-pycommon
 
+# Remove existing GTSAM if installed
 if dpkg -l | grep -q "^ii  gtsam "; then
-    sudo apt remove -y gtsam
+    sudo apt-get remove -y gtsam
 fi
 
-sudo add-apt-repository --remove ppa:bernd-pfrommer/gtsam
-sudo apt-add-repository --remove ppa:borglab/gtsam-release-4.0
-sudo apt-add-repository ppa:borglab/gtsam-release-4.1
-sudo apt update
-sudo apt install libgtsam-dev libgtsam-unstable-dev
+# Remove old PPAs (ignore errors if they don't exist)
+sudo add-apt-repository --remove ppa:bernd-pfrommer/gtsam -y || true
+sudo add-apt-repository --remove ppa:borglab/gtsam-release-4.0 -y || true
 
+# Add correct PPA
+sudo add-apt-repository -y ppa:borglab/gtsam-release-4.1
+
+# Update package lists and install GTSAM
+sudo apt-get update
+sudo apt-get install -y libgtsam-dev libgtsam-unstable-dev
+
+# Clone repositories
 cd ~/ROS2FRC/
 vcs import --recursive . < src/tagslam_root/tagslam_root.repos
+
+# Install ROS dependencies
 rosdep install --from-paths src --ignore-src -r -y
 
-# Working TagSLAM build
-catkin clean -y
-catkin config -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBoost_NO_BOOST_CMAKE=ON 
+# Build TagSLAM
+catkin config -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBoost_NO_BOOST_CMAKE=ON
 catkin build
