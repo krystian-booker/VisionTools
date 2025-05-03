@@ -113,18 +113,14 @@ vcs import --recursive . < src/tagslam_root/tagslam_root.repos   # TagSLAM
 rosdep install --from-paths src --ignore-src -r -y
 
 ####################################
-# Configure and build the whole workspace (TagSLAM + Kalibr) in install mode
+# Configure and build the whole workspace (TagSLAM + Kalibr)
 ####################################
-# Switch to an install space instead of the default devel overlay
-catkin config --install \
-              --extend /opt/ros/noetic \
+catkin config --merge-devel --extend /opt/ros/noetic \
               -DCMAKE_BUILD_TYPE=Release \
               -DBoost_NO_BOOST_CMAKE=ON
-
-# Build and install into <workspace>/install
 catkin build -j"$(nproc)"
 
-# Source the install space so Kalibr & TagSLAM are on your ROS path
-source install/setup.bash
+# Optional: source the workspace so Kalibr is on the ROS path for this shell
+source devel/setup.bash
 
-echo "✅  TagSLAM and Kalibr have been installed successfully!"
+echo "✅  TagSLAM and Kalibr have been built successfully!"
