@@ -115,12 +115,12 @@ rosdep install --from-paths src --ignore-src -r -y
 ####################################
 # Configure and build the whole workspace (TagSLAM + Kalibr)
 ####################################
-catkin config --install --extend /opt/ros/noetic \
+catkin config --merge-devel --extend /opt/ros/noetic \
               -DCMAKE_BUILD_TYPE=Release \
-                           -DBoost_NO_BOOST_CMAKE=ON
+              -DBoost_NO_BOOST_CMAKE=ON
 catkin build -j"$(nproc)"
 
-echo "source \$HOME/ROS2FRC/install/setup.bash" >> ~/.bashrc
-source ~/.bashrc
+# Optional: source the workspace so Kalibr is on the ROS path for this shell
+source devel/setup.bash
 
 echo "✅  TagSLAM and Kalibr have been built successfully!"
