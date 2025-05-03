@@ -116,7 +116,7 @@ rosdep install --from-paths src --ignore-src -r -y
 # Configure and build the whole workspace (TagSLAM + Kalibr)
 ####################################
 catkin config --install --extend /opt/ros/noetic \
-              --cmake-args -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_BUILD_TYPE=Release \
                            -DBoost_NO_BOOST_CMAKE=ON
 catkin build -j"$(nproc)"
 
