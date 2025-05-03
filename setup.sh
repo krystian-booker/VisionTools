@@ -123,4 +123,23 @@ catkin build -j"$(nproc)"
 # Optional: source the workspace so Kalibr is on the ROS path for this shell
 source devel/setup.bash
 
+################################################################################
+# Put Kalibr’s CLI tools on the PATH
+################################################################################
+WORKSPACE_DIR="$HOME/ROS2FRC"                 # <- change if your workspace lives elsewhere
+KALIBR_DIR="$WORKSPACE_DIR/devel/lib/kalibr"
+
+# 1.  Make them available for the remainder of this script / current terminal
+export PATH="$PATH:$KALIBR_DIR"
+
+# 2.  Persist for all future terminals (append only if not already present)
+if ! grep -qF "$KALIBR_DIR" "$HOME/.bashrc"; then
+  {
+    echo ""
+    echo "# Kalibr CLI tools"
+    echo "export PATH=\"\$PATH:$KALIBR_DIR\""
+  } >> "$HOME/.bashrc"
+fi
+
+
 echo "✅  TagSLAM and Kalibr have been built successfully!"
