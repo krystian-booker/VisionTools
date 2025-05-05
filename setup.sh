@@ -39,7 +39,15 @@ echo "Installing ROS Noetic..."
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
 sudo apt update
-sudo apt install -y ros-noetic-desktop-full
+sudo apt install -y ros-noetic-desktop-full python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential \
+    ros-noetic-catkin ros-noetic-usb-cam ros-noetic-camera-info-manager ros-noetic-diagnostic-updater ros-noetic-dynamic-reconfigure \
+    ros-noetic-image-exposure-msgs ros-noetic-image-transport ros-noetic-nodelet ros-noetic-roscpp ros-noetic-sensor-msgs ros-noetic-wfov-camera-msgs \
+    python3-vcstool python3-catkin-tools python3-osrf-pycommon \
+    autoconf automake nano libeigen3-dev libboost-all-dev libsuitesparse-dev doxygen \
+    libopencv-dev libpoco-dev libtbb-dev libblas-dev liblapack-dev libv4l-dev \
+    python3-dev python3-pip python3-scipy python3-matplotlib ipython3 python3-wxgtk4.0 \
+    python3-tk python3-igraph python3-pyx \
+    libgoogle-glog-dev libgflags-dev libglew-dev
 
 # Source ROS now for this script to use its commands
 source /opt/ros/noetic/setup.bash
@@ -47,14 +55,6 @@ source /opt/ros/noetic/setup.bash
 # Add to bashrc for future terminals
 echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 source ~/.bashrc
-
-sudo apt install -y python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
-sudo apt install -y ros-noetic-catkin
-
-####################################
-# Install USB Camera Driver
-####################################
-sudo apt install -y ros-noetic-usb-cam ros-noetic-camera-info-manager ros-noetic-diagnostic-updater ros-noetic-dynamic-reconfigure ros-noetic-image-exposure-msgs ros-noetic-image-transport ros-noetic-nodelet ros-noetic-roscpp ros-noetic-sensor-msgs ros-noetic-wfov-camera-msgs
 
 ####################################
 # Install additional camera drivers
@@ -70,16 +70,6 @@ if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
     sudo rosdep init
 fi
 rosdep update
-
-####################################
-# Build & Python prerequisites (TagSLAM + Kalibr)
-####################################
-sudo apt-get install -y python3-vcstool python3-catkin-tools python3-osrf-pycommon \
-  autoconf automake nano libeigen3-dev libboost-all-dev libsuitesparse-dev doxygen \
-  libopencv-dev libpoco-dev libtbb-dev libblas-dev liblapack-dev libv4l-dev \
-  python3-dev python3-pip python3-scipy python3-matplotlib ipython3 python3-wxgtk4.0 \
-  python3-tk python3-igraph python3-pyx \
-  libgoogle-glog-dev libgflags-dev libglew-dev
 
 ####################################
 # TagSLAM setup
@@ -122,5 +112,12 @@ catkin build -j"$(nproc)"
 
 # Optional: source the workspace so Kalibr is on the ROS path for this shell
 source devel/setup.bash
+
+# make TagSLAM/Kalibr workspace available in every new shell
+WORKSPACE_SETUP="source \$HOME/ROS2FRC/devel/setup.bash"
+if ! grep -Fxq "$WORKSPACE_SETUP" "$HOME/.bashrc"; then
+    echo "$WORKSPACE_SETUP" >> "$HOME/.bashrc"
+fi
+
 
 echo "✅  TagSLAM and Kalibr have been built successfully!"
