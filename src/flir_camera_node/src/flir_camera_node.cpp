@@ -190,7 +190,7 @@ try
 
     // 7: ROS publishers
     topic_ = "/camera/" + cfg_.name + "/image_raw";
-    pub_ = it_.advertise(topic_, 5);
+    pub_ = it_.advertise(topic_, 1);
     info_pub_ = nh.advertise<sensor_msgs::CameraInfo>("/camera/" + cfg_.name + "/camera_info", 5);
 
     // 8: Pre-allocate message buffers
