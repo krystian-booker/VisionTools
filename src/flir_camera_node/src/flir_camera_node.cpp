@@ -14,7 +14,7 @@
 #include <mutex>
 #include <cstring>
 #include <dynamic_reconfigure/server.h>
-#include <flir_camera/FlirConfig.h>
+#include <flir_camera_node/FlirConfig.h>
 #include <vector>
 #include <memory>
 #include <string>
@@ -65,7 +65,7 @@ public:
 
 private:
     // Dynamic reconfigure callback
-    void reconfigureCallback(flir_camera::FlirConfig &config, uint32_t level);
+    void reconfigureCallback(flir_camera_node::FlirConfig &config, uint32_t level);
 
     Spinnaker::CameraPtr cam_;
     image_transport::ImageTransport it_;
@@ -90,8 +90,8 @@ private:
     std::thread worker_;
 
     // Dynamic reconfigure server
-    dynamic_reconfigure::Server<flir_camera::FlirConfig> dyn_server_;
-    dynamic_reconfigure::Server<flir_camera::FlirConfig>::CallbackType dyn_cb_;
+    dynamic_reconfigure::Server<flir_camera_node::FlirConfig> dyn_server_;
+    dynamic_reconfigure::Server<flir_camera_node::FlirConfig>::CallbackType dyn_cb_;
 };
 
 // -------- constructor with exception handling --------
@@ -274,7 +274,7 @@ void CameraHandler::spin()
 }
 
 // -------- dynamic reconfigure callback --------
-void CameraHandler::reconfigureCallback(flir_camera::FlirConfig &config, uint32_t level)
+void CameraHandler::reconfigureCallback(flir_camera_node::FlirConfig &config, uint32_t level)
 {
     std::lock_guard<std::mutex> lk(cam_mutex_);
     auto &nm = cam_->GetNodeMap();
@@ -357,7 +357,7 @@ CameraHandler::~CameraHandler()
 // ----------------------------------------------------
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "flir_camera_node");
+    ros::init(argc, argv, "flir_camera_node_node");
     ros::NodeHandle nh("~");
 
     // 1) YAML → vector<CamConfig>
