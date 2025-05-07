@@ -1,0 +1,8 @@
+<launch>
+  <rosparam command="load" file="$(find flir_camera_node)/config/cameras.yaml" />
+  <node pkg="flir_camera_node"
+        type="flir_camera_node"
+        name="flir_camera_node"
+        output="screen">
+  </node>
+</launch>
