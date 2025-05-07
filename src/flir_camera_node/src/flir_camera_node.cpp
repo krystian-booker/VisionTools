@@ -11,6 +11,8 @@
 #include "SpinGenApi/SpinnakerGenApi.h"
 
 #include <thread>
+#include <mutex>
+#include <cstring>
 #include <dynamic_reconfigure/server.h>
 #include <flir_camera/FlirConfig.h>
 #include <vector>
@@ -37,10 +39,10 @@ namespace
             throw std::runtime_error(std::string("Entry '") + entryName + "' not readable");
         e->SetIntValue(v->GetValue());
     }
-} // anonymous namespace
+}
 
 // ----------------------------------------------------
-//  CameraHandler declaration + definition in one block
+//  CameraHandler declaration + definition
 // ----------------------------------------------------
 struct CamConfig
 {
@@ -73,31 +75,23 @@ private:
     std::string topic_;
     CamConfig cfg_;
     std::atomic<bool> running_{true};
+
+    // Thread-safety for GenApi and image acquisition
+    std::mutex cam_mutex_;
+
+    // Timestamp base mapping
+    ros::Time base_time_;
+    bool base_time_initialized_{false};
+
+    // Pre-allocated messages
+    sensor_msgs::ImagePtr img_msg_ptr_;
+    sensor_msgs::CameraInfoPtr info_msg_ptr_;
+
     std::thread worker_;
 
     // Dynamic reconfigure server
     dynamic_reconfigure::Server<flir_camera::FlirConfig> dyn_server_;
     dynamic_reconfigure::Server<flir_camera::FlirConfig>::CallbackType dyn_cb_;
-};
-{
-public:
-    CameraHandler(Spinnaker::CameraPtr cam,
-                  ros::NodeHandle & nh,
-                  const CamConfig &cfg);
-    void spin();
-    void stop();
-    ~CameraHandler();
-
-private:
-    Spinnaker::CameraPtr cam_;
-    image_transport::ImageTransport it_;
-    image_transport::Publisher pub_;
-    ros::Publisher info_pub_;
-    camera_info_manager::CameraInfoManager cinfo_;
-    std::string topic_;
-    CamConfig cfg_;
-    std::atomic<bool> running_{true};
-    std::thread worker_;
 };
 
 // -------- constructor with exception handling --------
@@ -105,7 +99,11 @@ CameraHandler::CameraHandler(Spinnaker::CameraPtr cam,
                              ros::NodeHandle &nh,
                              const CamConfig &cfg)
 try
-    : cam_(cam), it_(nh), cfg_(cfg), cinfo_(nh, cfg.name)
+    : cam_(cam),
+      it_(nh),
+      cfg_(cfg),
+      cinfo_(nh, cfg.name),
+      dyn_server_(ros::NodeHandle(nh, cfg.name))
 {
     // 1: Init camera so GenApi nodes become available
     cam_->Init();
@@ -165,7 +163,7 @@ try
             chunkEnable->SetValue(true);
     }
 
-    // ** Setup dynamic reconfigure callback **
+    // ** Setup dynamic reconfigure callback with camera-specific namespace **
     dyn_cb_ = boost::bind(&CameraHandler::reconfigureCallback, this, _1, _2);
     dyn_server_.setCallback(dyn_cb_);
 
@@ -192,15 +190,19 @@ try
 
     // 7: ROS publishers
     topic_ = "/camera/" + cfg_.name + "/image_raw";
-    pub_ = it_.advertise(topic_, 5);
+    pub_ = it_.advertise(topic_, 1);
     info_pub_ = nh.advertise<sensor_msgs::CameraInfo>("/camera/" + cfg_.name + "/camera_info", 5);
+
+    // 8: Pre-allocate message buffers
+    img_msg_ptr_ = boost::make_shared<sensor_msgs::Image>();
+    info_msg_ptr_ = boost::make_shared<sensor_msgs::CameraInfo>(cinfo_.getCameraInfo());
 
     ROS_INFO("Started '%s' @ %dx%d @ %.1f Hz → %s",
              cfg_.name.c_str(),
              cfg_.width, cfg_.height, cfg_.framerate,
              topic_.c_str());
 
-    // Launch worker thread
+    // 9: Launch worker thread
     worker_ = std::thread(&CameraHandler::spin, this);
 }
 catch (const Spinnaker::Exception &ex)
@@ -218,40 +220,48 @@ void CameraHandler::spin()
         while (ros::ok() && running_)
         {
             Spinnaker::ImagePtr img;
-            try
             {
-                img = cam_->GetNextImage(1000); // timeout in ms
+                std::lock_guard<std::mutex> lk(cam_mutex_);
+                try
+                {
+                    img = cam_->GetNextImage(1000); // timeout in ms
+                }
+                catch (const Spinnaker::TimeoutException &)
+                {
+                    continue;
+                }
             }
-            catch (const Spinnaker::TimeoutException &)
+
+            if (!img || img->IsIncomplete())
             {
+                if (img)
+                    img->Release();
                 continue;
             }
 
-            if (img->IsIncomplete())
-            {
-                img->Release();
-                continue;
-            }
-
-            // Build ROS Image message directly (single copy)
-            sensor_msgs::Image msg;
-            msg.header.frame_id = cfg_.name;
+            // Initialize base_time_ on first image
             uint64_t t_ns = img->GetTimeStamp();
-            msg.header.stamp.fromNSec(t_ns);
-            msg.height = img->GetHeight();
-            msg.width = img->GetWidth();
-            msg.encoding = sensor_msgs::image_encodings::MONO8;
-            msg.step = msg.width; // mono8 → 1 byte/pixel
-            size_t sz = msg.height * msg.step;
-            msg.data.assign(static_cast<uint8_t *>(img->GetData()),
-                            static_cast<uint8_t *>(img->GetData()) + sz);
+            if (!base_time_initialized_)
+            {
+                base_time_ = ros::Time::now() - ros::Duration().fromNSec(t_ns);
+                base_time_initialized_ = true;
+            }
 
-            pub_.publish(msg);
+            // Fill and publish Image
+            img_msg_ptr_->header.frame_id = cfg_.name;
+            img_msg_ptr_->header.stamp = base_time_ + ros::Duration().fromNSec(t_ns);
+            img_msg_ptr_->height = img->GetHeight();
+            img_msg_ptr_->width = img->GetWidth();
+            img_msg_ptr_->encoding = sensor_msgs::image_encodings::MONO8;
+            img_msg_ptr_->step = img_msg_ptr_->width;
+            size_t sz = img_msg_ptr_->height * img_msg_ptr_->step;
+            img_msg_ptr_->data.resize(sz);
+            std::memcpy(img_msg_ptr_->data.data(), img->GetData(), sz);
+            pub_.publish(img_msg_ptr_);
 
-            // Publish CameraInfo
-            sensor_msgs::CameraInfo info = cinfo_.getCameraInfo();
-            info.header = msg.header;
-            info_pub_.publish(info);
+            // Publish cached CameraInfo (only header changes)
+            info_msg_ptr_->header = img_msg_ptr_->header;
+            info_pub_.publish(info_msg_ptr_);
 
             img->Release();
         }
@@ -262,13 +272,14 @@ void CameraHandler::spin()
                   cfg_.name.c_str(), ex.what());
     }
 }
-}
 
 // -------- dynamic reconfigure callback --------
 void CameraHandler::reconfigureCallback(flir_camera::FlirConfig &config, uint32_t level)
 {
+    std::lock_guard<std::mutex> lk(cam_mutex_);
     auto &nm = cam_->GetNodeMap();
     using namespace Spinnaker::GenApi;
+
     // Enable and set decimation
     setEnum(nm, "DecimationMode", "On");
     {
