@@ -11,6 +11,8 @@
 #include "SpinGenApi/SpinnakerGenApi.h"
 
 #include <thread>
+#include <dynamic_reconfigure/server.h>
+#include <flir_camera/FlirConfig.h>
 #include <vector>
 #include <memory>
 #include <string>
@@ -54,6 +56,33 @@ class CameraHandler
 public:
     CameraHandler(Spinnaker::CameraPtr cam,
                   ros::NodeHandle &nh,
+                  const CamConfig &cfg);
+    void spin();
+    void stop();
+    ~CameraHandler();
+
+private:
+    // Dynamic reconfigure callback
+    void reconfigureCallback(flir_camera::FlirConfig &config, uint32_t level);
+
+    Spinnaker::CameraPtr cam_;
+    image_transport::ImageTransport it_;
+    image_transport::Publisher pub_;
+    ros::Publisher info_pub_;
+    camera_info_manager::CameraInfoManager cinfo_;
+    std::string topic_;
+    CamConfig cfg_;
+    std::atomic<bool> running_{true};
+    std::thread worker_;
+
+    // Dynamic reconfigure server
+    dynamic_reconfigure::Server<flir_camera::FlirConfig> dyn_server_;
+    dynamic_reconfigure::Server<flir_camera::FlirConfig>::CallbackType dyn_cb_;
+};
+{
+public:
+    CameraHandler(Spinnaker::CameraPtr cam,
+                  ros::NodeHandle & nh,
                   const CamConfig &cfg);
     void spin();
     void stop();
@@ -135,6 +164,10 @@ try
         if (chunkEnable && IsWritable(chunkEnable))
             chunkEnable->SetValue(true);
     }
+
+    // ** Setup dynamic reconfigure callback **
+    dyn_cb_ = boost::bind(&CameraHandler::reconfigureCallback, this, _1, _2);
+    dyn_server_.setCallback(dyn_cb_);
 
     // 5: Hardware sync
     if (cfg_.primary)
@@ -228,6 +261,60 @@ void CameraHandler::spin()
         ROS_ERROR("Exception in CameraHandler::spin for %s: %s",
                   cfg_.name.c_str(), ex.what());
     }
+}
+}
+
+// -------- dynamic reconfigure callback --------
+void CameraHandler::reconfigureCallback(flir_camera::FlirConfig &config, uint32_t level)
+{
+    auto &nm = cam_->GetNodeMap();
+    using namespace Spinnaker::GenApi;
+    // Enable and set decimation
+    setEnum(nm, "DecimationMode", "On");
+    {
+        auto decH = nm.GetNode("DecimationHorizontal");
+        if (decH && IsWritable(decH))
+            decH->SetValue(config.decimation_x);
+        auto decV = nm.GetNode("DecimationVertical");
+        if (decV && IsWritable(decV))
+            decV->SetValue(config.decimation_y);
+    }
+    // Exposure (manual)
+    {
+        auto expAuto = nm.GetNode("ExposureAuto");
+        if (expAuto && IsWritable(expAuto))
+            expAuto->SetIntValue(
+                CEnumerationPtr(expAuto)->GetEntryByName("Off")->GetValue());
+        auto expTime = nm.GetNode("ExposureTime");
+        if (expTime && IsWritable(expTime))
+            expTime->SetValue(config.exposure);
+    }
+    // Gain (manual)
+    {
+        auto gainAuto = nm.GetNode("GainAuto");
+        if (gainAuto && IsWritable(gainAuto))
+            gainAuto->SetIntValue(
+                CEnumerationPtr(gainAuto)->GetEntryByName("Off")->GetValue());
+        auto gainNode = nm.GetNode("Gain");
+        if (gainNode && IsWritable(gainNode))
+            gainNode->SetValue(config.gain);
+    }
+    // Frame rate
+    {
+        auto frEnable = nm.GetNode("AcquisitionFrameRateEnable");
+        auto frVal = nm.GetNode("AcquisitionFrameRate");
+        if (frEnable && frVal && IsWritable(frEnable))
+        {
+            frEnable->SetValue(true);
+            frVal->SetValue(config.framerate);
+        }
+    }
+    ROS_INFO("Reconfigure: decH=%d decV=%d exp=%.1f gain=%.1f fps=%.1f",
+             config.decimation_x,
+             config.decimation_y,
+             config.exposure,
+             config.gain,
+             config.framerate);
 }
 
 // -------- stop acquisition cleanly ------------------------
