@@ -12,8 +12,10 @@
 #include <memory>
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <xmlrpcpp/XmlRpcValue.h>
 #include <stdexcept>
+#include <atomic>
 
 // ---------- helper for GenApi enumerations ----------
 namespace
@@ -53,6 +55,7 @@ public:
                   ros::NodeHandle &nh,
                   const CamConfig &cfg);
     void spin();
+    void stop();
     ~CameraHandler();
 
 private:
@@ -61,12 +64,14 @@ private:
     image_transport::Publisher pub_;
     std::string topic_;
     CamConfig cfg_;
+    std::atomic<bool> running_{true};
 };
 
-// -------- constructor --------------------------------
+// -------- constructor with exception handling --------
 CameraHandler::CameraHandler(Spinnaker::CameraPtr cam,
                              ros::NodeHandle &nh,
                              const CamConfig &cfg)
+try
     : cam_(cam), it_(nh), cfg_(cfg)
 {
     // 1: Init camera so GenApi nodes become available
@@ -75,17 +80,17 @@ CameraHandler::CameraHandler(Spinnaker::CameraPtr cam,
     // 2: Apply resolution
     auto &nodemap = cam_->GetNodeMap();
     using namespace Spinnaker::GenApi;
-    CIntegerPtr ptrW = nodemap.GetNode("Width");
-    CIntegerPtr ptrH = nodemap.GetNode("Height");
+    auto ptrW = nodemap.GetNode("Width");
+    auto ptrH = nodemap.GetNode("Height");
     if (ptrW && ptrH && IsWritable(ptrW) && IsWritable(ptrH))
     {
         ptrW->SetValue(cfg_.width);
         ptrH->SetValue(cfg_.height);
     }
 
-    // 3: Frame‑rate
-    CBooleanPtr ptrRateEnable = nodemap.GetNode("AcquisitionFrameRateEnable");
-    CFloatPtr ptrRate = nodemap.GetNode("AcquisitionFrameRate");
+    // 3: Frame-rate
+    auto ptrRateEnable = nodemap.GetNode("AcquisitionFrameRateEnable");
+    auto ptrRate = nodemap.GetNode("AcquisitionFrameRate");
     if (ptrRateEnable && ptrRate && IsWritable(ptrRateEnable))
     {
         ptrRateEnable->SetValue(true);
@@ -94,10 +99,10 @@ CameraHandler::CameraHandler(Spinnaker::CameraPtr cam,
 
     // 4: Pixel format → Mono8
     {
-        CEnumerationPtr pixelFmt = nodemap.GetNode("PixelFormat");
+        auto pixelFmt = nodemap.GetNode("PixelFormat");
         if (IsWritable(pixelFmt))
         {
-            CEnumEntryPtr mono8 = pixelFmt->GetEntryByName("Mono8");
+            auto mono8 = pixelFmt->GetEntryByName("Mono8");
             if (IsAvailable(mono8))
                 pixelFmt->SetIntValue(mono8->GetValue());
         }
@@ -126,42 +131,92 @@ CameraHandler::CameraHandler(Spinnaker::CameraPtr cam,
 
     // 7: ROS publisher
     topic_ = "/camera/" + cfg_.name + "/image_raw";
-    pub_ = it_.advertise(topic_, 1);
-    ROS_INFO("Started '%s' @ %dx%d @ %.1f Hz → %s",
+    pub_ = it_.advertise(topic_, 5);
+    ROS_INFO("Started '%s' @ %dx%d @ %.1f Hz → %s",
              cfg_.name.c_str(),
              cfg_.width, cfg_.height, cfg_.framerate,
              topic_.c_str());
 }
+catch (const Spinnaker::Exception &ex)
+{
+    ROS_FATAL("Spinnaker exception initializing camera %s: %s",
+              cfg.name.c_str(), ex.what());
+    throw;
+}
 
-// -------- worker thread ------------------------------
+// -------- worker thread with timeout & exception safety ------
 void CameraHandler::spin()
 {
-    while (ros::ok())
+    try
     {
-        auto img = cam_->GetNextImage();
-        if (img->IsIncomplete())
+        while (ros::ok() && running_)
         {
+            Spinnaker::ImagePtr img;
+            try
+            {
+                img = cam_->GetNextImage(1000); // timeout in ms
+            }
+            catch (const Spinnaker::TimeoutException &)
+            {
+                continue;
+            }
+
+            if (img->IsIncomplete())
+            {
+                img->Release();
+                continue;
+            }
+
+            cv::Mat frame(img->GetHeight(), img->GetWidth(),
+                          CV_8UC1, img->GetData());
+            // deep copy to own the buffer
+            auto msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", frame.clone())
+                           .toImageMsg();
+            msg->header.stamp = ros::Time::now();
+            pub_.publish(msg);
+
             img->Release();
-            continue;
         }
-
-        cv::Mat frame(img->GetHeight(), img->GetWidth(),
-                      CV_8UC1, img->GetData());
-
-        auto msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", frame)
-                       .toImageMsg();
-        msg->header.stamp = ros::Time::now();
-        pub_.publish(msg);
-
-        img->Release();
+    }
+    catch (const Spinnaker::Exception &ex)
+    {
+        ROS_ERROR("Exception in CameraHandler::spin for %s: %s",
+                  cfg_.name.c_str(), ex.what());
     }
 }
 
-// -------- destructor ---------------------------------
+// -------- stop acquisition cleanly ------------------------
+void CameraHandler::stop()
+{
+    running_ = false;
+    try
+    {
+        cam_->EndAcquisition();
+        cam_->DeInit();
+    }
+    catch (const Spinnaker::Exception &ex)
+    {
+        ROS_ERROR("Error stopping camera %s: %s",
+                  cfg_.name.c_str(), ex.what());
+    }
+}
+
+// -------- destructor --------------------------------------
 CameraHandler::~CameraHandler()
 {
-    cam_->EndAcquisition();
-    cam_->DeInit();
+    if (running_)
+    {
+        try
+        {
+            cam_->EndAcquisition();
+            cam_->DeInit();
+        }
+        catch (const Spinnaker::Exception &ex)
+        {
+            ROS_ERROR("Error deinitializing camera %s: %s",
+                      cfg_.name.c_str(), ex.what());
+        }
+    }
 }
 
 // ----------------------------------------------------
@@ -172,10 +227,16 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "flir_camera_node");
     ros::NodeHandle nh("~");
 
-    // 1) YAML → vector<CamConfig>
+    // 1) YAML → map<serial, CamConfig>
     XmlRpc::XmlRpcValue cam_list;
-    nh.getParam("camera_config/cameras", cam_list);
-    std::vector<CamConfig> configs;
+    if (!nh.getParam("camera_config/cameras", cam_list) ||
+        cam_list.getType() != XmlRpc::XmlRpcValue::TypeArray)
+    {
+        ROS_FATAL("camera_config/cameras param not found or is not an array");
+        return 1;
+    }
+
+    std::unordered_map<std::string, CamConfig> config_map;
     for (int i = 0; i < cam_list.size(); ++i)
     {
         auto &e = cam_list[i];
@@ -186,8 +247,8 @@ int main(int argc, char **argv)
         c.width = static_cast<int>(e["width"]);
         c.height = static_cast<int>(e["height"]);
         c.sync = static_cast<std::string>(e["sync"]);
-        configs.push_back(c);
-        ROS_INFO("YAML cfg: %s → serial=%s, %dx%d@%.1f Hz (%s)",
+        config_map[c.serial] = c;
+        ROS_INFO("YAML cfg: %s → serial=%s, %dx%d@%.1f Hz (%s)",
                  c.name.c_str(), c.serial.c_str(),
                  c.width, c.height, c.framerate,
                  c.sync.c_str());
@@ -199,37 +260,45 @@ int main(int argc, char **argv)
     unsigned int total = camList.GetSize();
     ROS_INFO("SDK reports %u cameras connected", total);
 
+    std::vector<std::shared_ptr<CameraHandler>> handlers;
     std::vector<std::thread> threads;
-    for (auto &cfg : configs)
+    for (unsigned i = 0; i < total; ++i)
     {
-        for (unsigned i = 0; i < total; ++i)
-        {
-            auto cam = camList.GetByIndex(i);
+        auto cam = camList.GetByIndex(i);
+        using namespace Spinnaker::GenApi;
+        auto strPtr = cam->GetTLDeviceNodeMap().GetNode("DeviceSerialNumber");
+        std::string serial = (strPtr && IsReadable(strPtr))
+                                 ? std::string(strPtr->GetValue())
+                                 : std::string();
 
-            using namespace Spinnaker::GenApi;
-            CStringPtr strPtr =
-                cam->GetTLDeviceNodeMap().GetNode("DeviceSerialNumber");
-                std::string serial =
-                (strPtr && IsReadable(strPtr))
-                    ? std::string(strPtr->GetValue()) 
-                    : std::string();
-            
-            if (serial == cfg.serial)
+        auto it = config_map.find(serial);
+        if (it != config_map.end())
+        {
+            try
             {
-                auto handler = std::make_shared<CameraHandler>(cam, nh, cfg);
+                auto handler = std::make_shared<CameraHandler>(cam, nh, it->second);
+                handlers.push_back(handler);
                 threads.emplace_back(&CameraHandler::spin, handler);
-                break;
+            }
+            catch (const std::exception &ex)
+            {
+                ROS_FATAL("Failed to initialize camera %s: %s",
+                          it->second.name.c_str(), ex.what());
             }
         }
     }
 
-    if (threads.empty())
+    if (handlers.empty())
     {
         ROS_FATAL("No configured cameras matched! Exiting.");
         return 1;
     }
 
     ros::spin();
+
+    // 3) Clean shutdown
+    for (auto &h : handlers)
+        h->stop();
     for (auto &t : threads)
         if (t.joinable())
             t.join();
