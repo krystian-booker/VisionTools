@@ -17,98 +17,107 @@ sudo apt install -y wget curl gpg apt-transport-https software-properties-common
 ####################################
 sudo locale-gen en_US en_US.UTF-8
 sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-export LANG=en_US.UTF-8
 
 ####################################
 # Install VSCode
 ####################################
 echo "Installing VSCode..."
 if ! command -v code &> /dev/null; then
-    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/packages.microsoft.gpg > /dev/null
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+    sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
+    rm microsoft.gpg
+    sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
     sudo apt update
     sudo apt install -y code
 fi
 
 ####################################
-# Install Python
+# Install ROS
 ####################################
-echo "Installing Python..."
-if ! python3.10 --version &> /dev/null; then
-    sudo add-apt-repository -y ppa:deadsnakes/ppa
-    sudo apt update
-    sudo apt install -y python3.10 python3.10-venv python3.10-distutils
-    sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+echo "Installing ROS Noetic..."
+
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+sudo apt update
+sudo apt install -y ros-noetic-desktop-full python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential \
+    ros-noetic-catkin ros-noetic-usb-cam ros-noetic-camera-info-manager ros-noetic-diagnostic-updater ros-noetic-dynamic-reconfigure \
+    ros-noetic-image-exposure-msgs ros-noetic-image-transport ros-noetic-nodelet ros-noetic-roscpp ros-noetic-sensor-msgs ros-noetic-wfov-camera-msgs \
+    python3-vcstool python3-catkin-tools python3-osrf-pycommon \
+    autoconf automake nano libeigen3-dev libboost-all-dev libsuitesparse-dev doxygen \
+    libopencv-dev libpoco-dev libtbb-dev libblas-dev liblapack-dev libv4l-dev \
+    python3-dev python3-pip python3-scipy python3-matplotlib ipython3 python3-wxgtk4.0 \
+    python3-tk python3-igraph python3-pyx \
+    libgoogle-glog-dev libgflags-dev libglew-dev
+
+# Source ROS now for this script to use its commands
+source /opt/ros/noetic/setup.bash
+
+# Add to bashrc for future terminals
+echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+####################################
+# Install additional camera drivers
+####################################
+if [ -f ./camera_install.sh ]; then
+    echo "Found camera_install.sh, running it first..."
+    chmod +x ./camera_install.sh
+    ./camera_install.sh
 fi
 
-####################################
-# AprilTag3 dependencies
-####################################
-sudo apt install -y libopencv-dev
-
-####################################
-# Install ROS 2 Humble
-####################################
-echo "Installing ROS2 Humble..."
-if [ ! -f /etc/apt/sources.list.d/ros2.list ]; then
-    sudo add-apt-repository universe -y
-    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | sudo tee /usr/share/keyrings/ros-archive-keyring.gpg > /dev/null
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
-    sudo apt update
+# Initialize rosdep
+if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
+    sudo rosdep init
 fi
-
-sudo apt install -y ros-humble-desktop python3-colcon-common-extensions \
-                    ros-humble-v4l2-camera ros-humble-image-transport ros-humble-cv-bridge \
-                    python3-rosdep
-
-# Add ROS to bashrc if not already there
-grep -qxF 'source /opt/ros/humble/setup.bash' ~/.bashrc || echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
-source /opt/ros/humble/setup.bash
-
-# GTSAM
-sudo apt install -y ros-$ROS_DISTRO-gtsam
-
-# Force shell rehash
-hash -r
-
-####################################
-# Setup ROS2 workspace
-####################################
-echo "Setting up ROS2 workspace..."
-WORKSPACE_DIR=~/ROS2FRC
-
-# Clone workspace if it doesn't exist
-if [ ! -d "$WORKSPACE_DIR" ]; then
-    git clone --recurse-submodules https://github.com/krystian-booker/ROS2FRC.git "$WORKSPACE_DIR"
-fi
-
-# Build AprilTag3
-echo "Building AprilTag3..."
-cd "$WORKSPACE_DIR/src/apriltag" || exit 1
-mkdir -p build && cd build || exit 1
-cmake ..
-make -j"$(nproc)"
-sudo make install
-sudo ldconfig
-
-# Source workspace setup file helper
-source_workspace() {
-    local setup_file="$1/install/setup.bash"
-    if [ -f "$setup_file" ]; then
-        source "$setup_file"
-    else
-        echo "Warning: Could not find setup file at $setup_file"
-    fi
-}
-
-# Back to workspace root
-cd "$WORKSPACE_DIR" || exit 1
-
-# Install dependencies and build full workspace
-echo "Resolving dependencies with rosdep..."
-sudo rosdep init 2>/dev/null || echo "rosdep already initialized"
 rosdep update
+
+####################################
+# TagSLAM setup
+####################################
+# Remove existing GTSAM if installed
+if dpkg -l | grep -q "^ii  gtsam "; then
+    sudo apt-get remove -y gtsam
+fi
+
+# Remove old PPAs (ignore errors if they don't exist)
+sudo add-apt-repository --remove ppa:bernd-pfrommer/gtsam -y || true
+sudo add-apt-repository --remove ppa:borglab/gtsam-release-4.0 -y || true
+
+# Add correct PPA
+sudo add-apt-repository -y ppa:borglab/gtsam-release-4.1
+
+# Update package lists and install GTSAM
+sudo apt-get update
+sudo apt-get install -y libgtsam-dev libgtsam-unstable-dev
+
+####################################
+# Clone/update repositories
+####################################
+cd ~/ROS2FRC/
+vcs import --recursive . < src/tagslam_root/tagslam_root.repos   # TagSLAM
+# (Kalibr is already present as a git sub-module inside src)
+
+####################################
+# Resolve ROS dependencies
+####################################
 rosdep install --from-paths src --ignore-src -r -y
 
-echo "Building full workspace..."
-colcon build --symlink-install
+####################################
+# Configure and build the whole workspace (TagSLAM + Kalibr)
+####################################
+catkin config --merge-devel --extend /opt/ros/noetic \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DBoost_NO_BOOST_CMAKE=ON
+catkin build -j"$(nproc)"
+
+# Optional: source the workspace so Kalibr is on the ROS path for this shell
+source devel/setup.bash
+
+# make TagSLAM/Kalibr workspace available in every new shell
+WORKSPACE_SETUP="source \$HOME/ROS2FRC/devel/setup.bash"
+if ! grep -Fxq "$WORKSPACE_SETUP" "$HOME/.bashrc"; then
+    echo "$WORKSPACE_SETUP" >> "$HOME/.bashrc"
+fi
+
+
+echo "✅  TagSLAM and Kalibr have been built successfully!"

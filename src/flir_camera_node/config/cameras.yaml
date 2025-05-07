@@ -1,0 +1,14 @@
+camera_config:
+  cameras:
+    - serial: "_"
+      name: "front_left"
+      framerate: 30.0
+      width: 2048
+      height: 1536
+      sync: primary
+    - serial: "_"
+      name: "front_right"
+      framerate: 30.0
+      width: 2048
+      height: 1536
+      sync: secondary

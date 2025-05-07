@@ -1,15 +1,94 @@
-# ROS 2 build files
+camera_install.sh
+# Catkin build artifacts
 build/
+devel/
 install/
+.catkin_tools
+.logs/
+# ROS logs
 log/
+*.log
+logs/
 
-# CMake files
+# ROS cache files
+rosinstall/
+*.pyc
+*.pyo
+*.swp
+
+# CMake
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
 
-# Editor settings
+# Compiled libraries
+*.so
+*.a
+*.o
+
+# Python cache
+__pycache__/
+
+# VSCode settings (optional if using VSCode and want clean repos)
 .vscode/
-.idea/
+
+# Backup/swap files
+*~
+*.bak
+*.tmp
 *.swp
+
+# TagSLAM specific (if they generate anything cached)
+tagslam_output/
+logs/apriltag_ros/
+src/apriltag
+src/flex_sync
+src/tagslam
+src/tagslam_viz
+
+spinnaker-4.2.0.46-amd64-20.04-pkg.tar.gz
+
+spinnaker-4.2.0.46-amd64/configure_gentl_paths.sh
+
+spinnaker-4.2.0.46-amd64/configure_spinnaker_paths.sh
+
+spinnaker-4.2.0.46-amd64/configure_spinnaker.sh
+
+spinnaker-4.2.0.46-amd64/configure_usbfs.sh
+
+spinnaker-4.2.0.46-amd64/install_spinnaker.sh
+
+spinnaker-4.2.0.46-amd64/libgentl_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/libspinnaker_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/libspinnaker-c_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/libspinnaker-c-dev_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/libspinnaker-dev_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/libspinvideo_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/libspinvideo-c_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/libspinvideo-c-dev_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/libspinvideo-dev_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/README.md
+
+spinnaker-4.2.0.46-amd64/remove_spinnaker.sh
+
+spinnaker-4.2.0.46-amd64/spinnaker_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/spinnaker-doc_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/spinupdate_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/spinupdate-dev_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/spinview-qt_4.2.0.46_amd64.deb
+
+spinnaker-4.2.0.46-amd64/spinview-qt-dev_4.2.0.46_amd64.deb
