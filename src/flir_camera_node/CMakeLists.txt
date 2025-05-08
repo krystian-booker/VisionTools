@@ -42,15 +42,15 @@ include_directories(
 
 link_directories(/opt/spinnaker/lib)
 
-add_executable(${PROJECT_NAME}_node src/flir_camera_node.cpp)
+add_executable(${PROJECT_NAME} src/flir_camera_node.cpp)
 
 add_dependencies(
-  ${PROJECT_NAME}_node
+  ${PROJECT_NAME}
   ${PROJECT_NAME}_gencfg
   ${catkin_EXPORTED_TARGETS}
 )
 
-target_link_libraries(${PROJECT_NAME}_node
+target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   Spinnaker
 )
