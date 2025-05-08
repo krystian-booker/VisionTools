@@ -113,8 +113,8 @@ try
 
     // 2: Apply resolution
     {
-        auto ptrW = nodemap.GetNode("Width");
-        auto ptrH = nodemap.GetNode("Height");
+        CIntegerPtr ptrW = nodemap.GetNode("Width");
+        CIntegerPtr ptrH = nodemap.GetNode("Height");
         if (ptrW && ptrH && IsWritable(ptrW) && IsWritable(ptrH))
         {
             ptrW->SetValue(cfg_.width);
@@ -124,8 +124,8 @@ try
 
     // 3: Frame-rate
     {
-        auto ptrRateEnable = nodemap.GetNode("AcquisitionFrameRateEnable");
-        auto ptrRate = nodemap.GetNode("AcquisitionFrameRate");
+        CBooleanPtr ptrRateEnable = nodemap.GetNode("AcquisitionFrameRateEnable");
+        CFloatPtr ptrRate = nodemap.GetNode("AcquisitionFrameRate");
         if (ptrRateEnable && ptrRate && IsWritable(ptrRateEnable))
         {
             ptrRateEnable->SetValue(true);
@@ -135,30 +135,30 @@ try
 
     // 4: Pixel format → Mono8
     {
-        auto pixelFmt = nodemap.GetNode("PixelFormat");
-        if (IsWritable(pixelFmt))
+        CEnumerationPtr pixelFmt = nodemap.GetNode("PixelFormat");
+        if (pixelFmt && IsWritable(pixelFmt))
         {
-            auto mono8 = pixelFmt->GetEntryByName("Mono8");
-            if (IsAvailable(mono8))
+            CEnumEntryPtr mono8 = pixelFmt->GetEntryByName("Mono8");
+            if (mono8 && IsReadable(mono8))
                 pixelFmt->SetIntValue(mono8->GetValue());
         }
     }
 
     // ** Enable chunk timestamp for accurate hardware sync **
     {
-        auto chunkMode = nodemap.GetNode("ChunkModeActive");
+        CBooleanPtr chunkMode = nodemap.GetNode("ChunkModeActive");
         if (chunkMode && IsWritable(chunkMode))
             chunkMode->SetValue(true);
 
-        auto chunkSel = nodemap.GetNode("ChunkSelector");
+        CEnumerationPtr chunkSel = nodemap.GetNode("ChunkSelector");
         if (chunkSel && IsWritable(chunkSel))
         {
-            auto tsEntry = chunkSel->GetEntryByName("Timestamp");
-            if (IsAvailable(tsEntry))
+            CEnumEntryPtr tsEntry = chunkSel->GetEntryByName("Timestamp");
+            if (tsEntry && IsReadable(tsEntry))
                 chunkSel->SetIntValue(tsEntry->GetValue());
         }
 
-        auto chunkEnable = nodemap.GetNode("ChunkEnable");
+        CBooleanPtr chunkEnable = nodemap.GetNode("ChunkEnable");
         if (chunkEnable && IsWritable(chunkEnable))
             chunkEnable->SetValue(true);
     }
@@ -191,11 +191,13 @@ try
     // 7: ROS publishers
     topic_ = "/camera/" + cfg_.name + "/image_raw";
     pub_ = it_.advertise(topic_, 1);
-    info_pub_ = nh.advertise<sensor_msgs::CameraInfo>("/camera/" + cfg_.name + "/camera_info", 5);
+    info_pub_ = nh.advertise<sensor_msgs::CameraInfo>(
+        "/camera/" + cfg_.name + "/camera_info", 1);
 
     // 8: Pre-allocate message buffers
     img_msg_ptr_ = boost::make_shared<sensor_msgs::Image>();
-    info_msg_ptr_ = boost::make_shared<sensor_msgs::CameraInfo>(cinfo_.getCameraInfo());
+    info_msg_ptr_ = boost::make_shared<sensor_msgs::CameraInfo>(
+        cinfo_.getCameraInfo());
 
     ROS_INFO("Started '%s' @ %dx%d @ %.1f Hz → %s",
              cfg_.name.c_str(),
@@ -249,7 +251,8 @@ void CameraHandler::spin()
 
             // Fill and publish Image
             img_msg_ptr_->header.frame_id = cfg_.name;
-            img_msg_ptr_->header.stamp = base_time_ + ros::Duration().fromNSec(t_ns);
+            img_msg_ptr_->header.stamp =
+                base_time_ + ros::Duration().fromNSec(t_ns);
             img_msg_ptr_->height = img->GetHeight();
             img_msg_ptr_->width = img->GetWidth();
             img_msg_ptr_->encoding = sensor_msgs::image_encodings::MONO8;
@@ -283,43 +286,47 @@ void CameraHandler::reconfigureCallback(flir_camera_node::FlirConfig &config, ui
     // Enable and set decimation
     setEnum(nm, "DecimationMode", "On");
     {
-        auto decH = nm.GetNode("DecimationHorizontal");
+        CIntegerPtr decH = nm.GetNode("DecimationHorizontal");
         if (decH && IsWritable(decH))
             decH->SetValue(config.decimation_x);
-        auto decV = nm.GetNode("DecimationVertical");
+        CIntegerPtr decV = nm.GetNode("DecimationVertical");
         if (decV && IsWritable(decV))
             decV->SetValue(config.decimation_y);
     }
+
     // Exposure (manual)
     {
-        auto expAuto = nm.GetNode("ExposureAuto");
+        CEnumerationPtr expAuto = nm.GetNode("ExposureAuto");
         if (expAuto && IsWritable(expAuto))
             expAuto->SetIntValue(
-                CEnumerationPtr(expAuto)->GetEntryByName("Off")->GetValue());
-        auto expTime = nm.GetNode("ExposureTime");
+                CEnumEntryPtr(expAuto->GetEntryByName("Off"))->GetValue());
+        CFloatPtr expTime = nm.GetNode("ExposureTime");
         if (expTime && IsWritable(expTime))
             expTime->SetValue(config.exposure);
     }
+
     // Gain (manual)
     {
-        auto gainAuto = nm.GetNode("GainAuto");
+        CEnumerationPtr gainAuto = nm.GetNode("GainAuto");
         if (gainAuto && IsWritable(gainAuto))
             gainAuto->SetIntValue(
-                CEnumerationPtr(gainAuto)->GetEntryByName("Off")->GetValue());
-        auto gainNode = nm.GetNode("Gain");
+                CEnumEntryPtr(gainAuto->GetEntryByName("Off"))->GetValue());
+        CFloatPtr gainNode = nm.GetNode("Gain");
         if (gainNode && IsWritable(gainNode))
             gainNode->SetValue(config.gain);
     }
+
     // Frame rate
     {
-        auto frEnable = nm.GetNode("AcquisitionFrameRateEnable");
-        auto frVal = nm.GetNode("AcquisitionFrameRate");
+        CBooleanPtr frEnable = nm.GetNode("AcquisitionFrameRateEnable");
+        CFloatPtr frVal = nm.GetNode("AcquisitionFrameRate");
         if (frEnable && frVal && IsWritable(frEnable))
         {
             frEnable->SetValue(true);
             frVal->SetValue(config.framerate);
         }
     }
+
     ROS_INFO("Reconfigure: decH=%d decV=%d exp=%.1f gain=%.1f fps=%.1f",
              config.decimation_x,
              config.decimation_y,
