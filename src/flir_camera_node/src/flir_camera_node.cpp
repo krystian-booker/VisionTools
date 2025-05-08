@@ -105,13 +105,13 @@ try
       cinfo_(nh, cfg.name),
       dyn_server_(ros::NodeHandle(nh, cfg.name))
 {
-    // 1: Init camera so GenApi nodes become available
+    // Init camera so GenApi nodes become available
     cam_->Init();
 
     auto &nodemap = cam_->GetNodeMap();
     using namespace Spinnaker::GenApi;
 
-    // 2: Apply resolution
+    // Apply resolution
     {
         CIntegerPtr ptrW = nodemap.GetNode("Width");
         CIntegerPtr ptrH = nodemap.GetNode("Height");
@@ -122,7 +122,7 @@ try
         }
     }
 
-    // 3: Frame-rate
+    // Frame-rate
     {
         CBooleanPtr ptrRateEnable = nodemap.GetNode("AcquisitionFrameRateEnable");
         CFloatPtr ptrRate = nodemap.GetNode("AcquisitionFrameRate");
@@ -133,7 +133,7 @@ try
         }
     }
 
-    // 4: Pixel format → Mono8
+    // Pixel format → Mono8
     {
         CEnumerationPtr pixelFmt = nodemap.GetNode("PixelFormat");
         if (pixelFmt && IsWritable(pixelFmt))
@@ -167,7 +167,7 @@ try
     dyn_cb_ = boost::bind(&CameraHandler::reconfigureCallback, this, _1, _2);
     dyn_server_.setCallback(dyn_cb_);
 
-    // 5: Hardware sync
+    // hardware sync
     if (cfg_.primary)
     {
         setEnum(nodemap, "LineSelector", "Line3");
@@ -185,16 +185,16 @@ try
                  cfg_.name.c_str());
     }
 
-    // 6: Begin acquisition
+    // begin acquisition
     cam_->BeginAcquisition();
 
-    // 7: ROS publishers
+    // ROS publishers
     topic_ = "/camera/" + cfg_.name + "/image_raw";
     pub_ = it_.advertise(topic_, 1);
     info_pub_ = nh.advertise<sensor_msgs::CameraInfo>(
         "/camera/" + cfg_.name + "/camera_info", 1);
 
-    // 8: Pre-allocate message buffers
+    // pre-allocate message buffers
     img_msg_ptr_ = boost::make_shared<sensor_msgs::Image>();
     info_msg_ptr_ = boost::make_shared<sensor_msgs::CameraInfo>(
         cinfo_.getCameraInfo());
@@ -204,7 +204,7 @@ try
              cfg_.width, cfg_.height, cfg_.framerate,
              topic_.c_str());
 
-    // 9: Launch worker thread
+    // launch worker thread
     worker_ = std::thread(&CameraHandler::spin, this);
 }
 catch (const Spinnaker::Exception &ex)
@@ -228,7 +228,7 @@ void CameraHandler::spin()
                 {
                     img = cam_->GetNextImage(1000); // timeout in ms
                 }
-                catch (const Spinnaker::TimeoutException &)
+                catch (const Spinnaker::TimeoutException &e)
                 {
                     continue;
                 }
@@ -367,7 +367,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "flir_camera_node_node");
     ros::NodeHandle nh("~");
 
-    // 1) YAML → vector<CamConfig>
+    // YAML → vector<CamConfig>
     XmlRpc::XmlRpcValue cam_list;
     if (!nh.getParam("camera_config/cameras", cam_list) ||
         cam_list.getType() != XmlRpc::XmlRpcValue::TypeArray)
@@ -413,7 +413,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // 2) Enumerate cameras and spawn handlers
+    // enumerate cameras and spawn handlers
     auto system = Spinnaker::System::GetInstance();
     auto camList = system->GetCameras();
     unsigned int total = camList.GetSize();
@@ -425,10 +425,16 @@ int main(int argc, char **argv)
     {
         auto cam = camList.GetByIndex(i);
         using namespace Spinnaker::GenApi;
-        auto strPtr = cam->GetTLDeviceNodeMap().GetNode("DeviceSerialNumber");
-        std::string serial = (strPtr && IsReadable(strPtr))
-                                 ? std::string(strPtr->GetValue())
-                                 : std::string();
+        CStringPtr strPtr = cam->GetTLDeviceNodeMap().GetNode("DeviceSerialNumber");
+        std::string serial = "";
+        if (strPtr && Spinnaker::GenApi::IsReadable(strPtr))
+        {
+            serial = strPtr->GetValue();
+        }
+        else
+        {
+            serial = "";
+        }
 
         auto it = config_map.find(serial);
         if (it != config_map.end())
@@ -454,7 +460,7 @@ int main(int argc, char **argv)
 
     ros::spin();
 
-    // 3) Clean shutdown
+    // clean shutdown
     for (auto &h : handlers)
         h->stop();
 
