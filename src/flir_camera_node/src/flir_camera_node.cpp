@@ -224,14 +224,7 @@ void CameraHandler::spin()
             Spinnaker::ImagePtr img;
             {
                 std::lock_guard<std::mutex> lk(cam_mutex_);
-                try
-                {
-                    img = cam_->GetNextImage(1000); // timeout in ms
-                }
-                catch (const Spinnaker::TimeoutException &e)
-                {
-                    continue;
-                }
+                img = cam_->GetNextImage(1000); // timeout in ms
             }
 
             if (!img || img->IsIncomplete())
