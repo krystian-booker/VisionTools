@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Name of your workspace/repo directory
+REPO_NAME="ROS2FRC"
+
 # Ask for sudo up front
 sudo -v
 
@@ -10,7 +13,7 @@ sudo apt update && sudo apt upgrade -y
 ####################################
 # Essentials
 ####################################
-sudo apt install -y wget curl gpg apt-transport-https software-properties-common build-essential cmake git locales
+sudo apt install -y wget curl gpg apt-transport-https software-properties-common build-essential cmake git locales nginx
 
 ####################################
 # Set locale
@@ -93,7 +96,7 @@ sudo apt-get install -y libgtsam-dev libgtsam-unstable-dev
 ####################################
 # Clone/update repositories
 ####################################
-cd ~/ROS2FRC/
+cd ~/"$REPO_NAME"/
 vcs import --recursive . < src/tagslam_root/tagslam_root.repos   # TagSLAM
 # (Kalibr is already present as a git sub-module inside src)
 
@@ -110,16 +113,42 @@ catkin config --merge-devel --extend /opt/ros/noetic \
               -DBoost_NO_BOOST_CMAKE=ON
 catkin build -j"$(nproc)"
 
-# Optional: source the workspace so Kalibr is on the ROS path for this shell
+# Source the workspace so Kalibr is on the ROS path for this shell
 source devel/setup.bash
 
 # make TagSLAM/Kalibr workspace available in every new shell
-WORKSPACE_SETUP="source \$HOME/ROS2FRC/devel/setup.bash"
+WORKSPACE_SETUP="source \$HOME/$REPO_NAME/devel/setup.bash"
 if ! grep -Fxq "$WORKSPACE_SETUP" "$HOME/.bashrc"; then
     echo "$WORKSPACE_SETUP" >> "$HOME/.bashrc"
 fi
 
-
 echo "✅  TagSLAM and Kalibr have been built successfully!"
 
 # roslaunch flir_camera_node flir_cameras.launch
+
+# Setup Nginx to serve $REPO_NAME/web
+echo "Configuring Nginx to serve ~/$REPO_NAME/web ..."
+NGINX_CONF="/etc/nginx/sites-available/$REPO_NAME"
+sudo tee "${NGINX_CONF}" > /dev/null <<EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    root \$HOME/$REPO_NAME/web;
+    index index.html index.htm;
+    server_name _;
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+}
+EOF
+
+# Enable our site, disable default, reload
+sudo ln -sf "${NGINX_CONF}" /etc/nginx/sites-enabled/$REPO_NAME
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+
+# Ensure the web directory is world-readable
+chmod -R o+rx "$HOME/$REPO_NAME/web"
+
+echo "✅  Nginx is now serving your web UI at http://<this-machine-IP>/"

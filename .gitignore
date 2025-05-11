@@ -92,3 +92,6 @@ spinnaker-4.2.0.46-amd64/spinupdate-dev_4.2.0.46_amd64.deb
 spinnaker-4.2.0.46-amd64/spinview-qt_4.2.0.46_amd64.deb
 
 spinnaker-4.2.0.46-amd64/spinview-qt-dev_4.2.0.46_amd64.deb
+
+web/node_modules/
+.venv/
