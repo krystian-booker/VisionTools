@@ -22,6 +22,7 @@
 #include <xmlrpcpp/XmlRpcValue.h>
 #include <stdexcept>
 #include <atomic>
+#include <flir_camera_node/CameraSettingsRange.h>
 
 // ---------- helper for GenApi enumerations ----------
 namespace
@@ -83,6 +84,7 @@ private:
     image_transport::ImageTransport it_;
     image_transport::Publisher pub_;
     ros::Publisher info_pub_;
+    ros::Publisher range_pub_;
     ros::NodeHandle cam_nh_;
     camera_info_manager::CameraInfoManager cinfo_;
     std::string topic_;
@@ -197,6 +199,38 @@ try
     dyn_cb_ = boost::bind(&CameraHandler::reconfigureCallback, this, _1, _2);
     dyn_server_.setCallback(dyn_cb_);
 
+    range_pub_ = cam_nh_.advertise<flir_camera_node::CameraSettingsRange>(
+        "settings_range", 1, /*latch=*/true);
+
+    auto getRange = [&](const char *node)
+    {
+        using namespace Spinnaker::GenApi;
+        CFloatPtr n(nodemap.GetNode(node));
+        return std::pair<double, double>{n->GetMin(), n->GetMax()};
+    };
+
+    auto exp_range = getRange("ExposureTime");
+    double e_min = exp_range.first;
+    double e_max = exp_range.second;
+
+    auto gain_range = getRange("Gain");
+    double g_min = gain_range.first;
+    double g_max = gain_range.second;
+
+    auto fps_range = getRange("AcquisitionFrameRate");
+    double f_min = fps_range.first;
+    double f_max = fps_range.second;
+
+    flir_camera_node::CameraSettingsRange rmsg;
+    rmsg.camera_name = cfg_.name;
+    rmsg.exposure_min = e_min;
+    rmsg.exposure_max = e_max;
+    rmsg.gain_min = g_min;
+    rmsg.gain_max = g_max;
+    rmsg.framerate_min = f_min;
+    rmsg.framerate_max = f_max;
+    range_pub_.publish(rmsg);
+
     // Hardware sync / mode based on role
     switch (cfg_.role)
     {
@@ -309,9 +343,6 @@ void CameraHandler::spin()
 // -------- dynamic reconfigure callback --------
 void CameraHandler::reconfigureCallback(flir_camera_node::FlirConfig &config, uint32_t level)
 {
-    ROS_INFO("Reconfigure CB: will set exp=%.1f gain=%.1f fps=%.1f",
-        config.exposure, config.gain, config.framerate);
-        
     std::lock_guard<std::mutex> lk(cam_mutex_);
     auto &nm = cam_->GetNodeMap();
     using namespace Spinnaker::GenApi;
