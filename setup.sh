@@ -121,3 +121,5 @@ fi
 
 
 echo "✅  TagSLAM and Kalibr have been built successfully!"
+
+# roslaunch flir_camera_node flir_cameras.launch

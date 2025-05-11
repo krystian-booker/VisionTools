@@ -1,14 +1,16 @@
 camera_config:
   cameras:
-    - serial: "_"
+    - serial: "17301966"
       name: "front_left"
       framerate: 30.0
-      width: 2048
-      height: 1536
-      sync: primary
-    - serial: "_"
+      exposure: 9996.41
+      gain: 18.4 
+      role: "solo"
+      video_mode: "Mode2"
+    - serial: "17301975"
       name: "front_right"
       framerate: 30.0
-      width: 2048
-      height: 1536
-      sync: secondary
+      exposure: 9996.41
+      gain: 18.4 
+      role: "solo"
+      video_mode: "Mode2"

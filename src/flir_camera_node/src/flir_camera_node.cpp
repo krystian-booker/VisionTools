@@ -42,6 +42,16 @@ namespace
 }
 
 // ----------------------------------------------------
+//  Role enumeration
+// ----------------------------------------------------
+enum class Role
+{
+    PRIMARY,
+    SECONDARY,
+    SOLO
+};
+
+// ----------------------------------------------------
 //  CameraHandler declaration + definition
 // ----------------------------------------------------
 struct CamConfig
@@ -49,8 +59,10 @@ struct CamConfig
     std::string serial;
     std::string name;
     double framerate;
-    int width, height;
-    bool primary;
+    Role role;
+    std::string video_mode;
+    double exposure;
+    double gain;
 };
 
 class CameraHandler
@@ -71,6 +83,7 @@ private:
     image_transport::ImageTransport it_;
     image_transport::Publisher pub_;
     ros::Publisher info_pub_;
+    ros::NodeHandle cam_nh_;
     camera_info_manager::CameraInfoManager cinfo_;
     std::string topic_;
     CamConfig cfg_;
@@ -86,7 +99,6 @@ private:
     // Pre-allocated messages
     sensor_msgs::ImagePtr img_msg_ptr_;
     sensor_msgs::CameraInfoPtr info_msg_ptr_;
-
     std::thread worker_;
 
     // Dynamic reconfigure server
@@ -102,24 +114,18 @@ try
     : cam_(cam),
       it_(nh),
       cfg_(cfg),
-      cinfo_(nh, cfg.name),
-      dyn_server_(ros::NodeHandle(nh, cfg.name))
+      cam_nh_(nh, cfg.name),
+      cinfo_(cam_nh_, cfg.name),
+      dyn_server_(cam_nh_)
 {
     // Init camera so GenApi nodes become available
     cam_->Init();
-
     auto &nodemap = cam_->GetNodeMap();
     using namespace Spinnaker::GenApi;
 
-    // Apply resolution
+    // Video mode
     {
-        CIntegerPtr ptrW = nodemap.GetNode("Width");
-        CIntegerPtr ptrH = nodemap.GetNode("Height");
-        if (ptrW && ptrH && IsWritable(ptrW) && IsWritable(ptrH))
-        {
-            ptrW->SetValue(cfg_.width);
-            ptrH->SetValue(cfg_.height);
-        }
+        setEnum(nodemap, "VideoMode", cfg_.video_mode.c_str());
     }
 
     // Frame-rate
@@ -133,6 +139,30 @@ try
         }
     }
 
+    // Exposure
+    {
+        using namespace Spinnaker::GenApi;
+        CEnumerationPtr expAuto = nodemap.GetNode("ExposureAuto");
+        if (expAuto && IsWritable(expAuto))
+            expAuto->SetIntValue(
+                CEnumEntryPtr(expAuto->GetEntryByName("Off"))->GetValue());
+        CFloatPtr expTime = nodemap.GetNode("ExposureTime");
+        if (expTime && IsWritable(expTime))
+            expTime->SetValue(cfg_.exposure);
+    }
+
+    // Gain
+    {
+        using namespace Spinnaker::GenApi;
+        CEnumerationPtr gainAuto = nodemap.GetNode("GainAuto");
+        if (gainAuto && IsWritable(gainAuto))
+            gainAuto->SetIntValue(
+                CEnumEntryPtr(gainAuto->GetEntryByName("Off"))->GetValue());
+        CFloatPtr gainNode = nodemap.GetNode("Gain");
+        if (gainNode && IsWritable(gainNode))
+            gainNode->SetValue(cfg_.gain);
+    }
+
     // Pixel format → Mono8
     {
         CEnumerationPtr pixelFmt = nodemap.GetNode("PixelFormat");
@@ -144,7 +174,7 @@ try
         }
     }
 
-    // ** Enable chunk timestamp for accurate hardware sync **
+    // Enable chunk timestamp
     {
         CBooleanPtr chunkMode = nodemap.GetNode("ChunkModeActive");
         if (chunkMode && IsWritable(chunkMode))
@@ -163,45 +193,52 @@ try
             chunkEnable->SetValue(true);
     }
 
-    // ** Setup dynamic reconfigure callback with camera-specific namespace **
+    // Dynamic reconfigure
     dyn_cb_ = boost::bind(&CameraHandler::reconfigureCallback, this, _1, _2);
     dyn_server_.setCallback(dyn_cb_);
 
-    // hardware sync
-    if (cfg_.primary)
+    // Hardware sync / mode based on role
+    switch (cfg_.role)
     {
+    case Role::PRIMARY:
         setEnum(nodemap, "LineSelector", "Line3");
         setEnum(nodemap, "LineMode", "Output");
         setEnum(nodemap, "LineSource", "ExposureActive");
         ROS_INFO("Camera %s: configured as PRIMARY sync on Line3",
                  cfg_.name.c_str());
-    }
-    else
-    {
+        break;
+
+    case Role::SECONDARY:
         setEnum(nodemap, "TriggerSelector", "FrameStart");
         setEnum(nodemap, "TriggerSource", "Line3");
         setEnum(nodemap, "TriggerMode", "On");
         ROS_INFO("Camera %s: configured as SECONDARY sync (external trigger)",
                  cfg_.name.c_str());
+        break;
+
+    case Role::SOLO:
+        // No hardware sync
+        ROS_INFO("Camera %s: configured as SOLO (independent)",
+                 cfg_.name.c_str());
+        break;
     }
 
-    // begin acquisition
     cam_->BeginAcquisition();
 
     // ROS publishers
     topic_ = "/camera/" + cfg_.name + "/image_raw";
     pub_ = it_.advertise(topic_, 1);
-    info_pub_ = nh.advertise<sensor_msgs::CameraInfo>(
-        "/camera/" + cfg_.name + "/camera_info", 1);
+    info_pub_ = cam_nh_.advertise<sensor_msgs::CameraInfo>(
+        "camera_info", 1);
 
     // pre-allocate message buffers
     img_msg_ptr_ = boost::make_shared<sensor_msgs::Image>();
     info_msg_ptr_ = boost::make_shared<sensor_msgs::CameraInfo>(
         cinfo_.getCameraInfo());
 
-    ROS_INFO("Started '%s' @ %dx%d @ %.1f Hz → %s",
+    ROS_INFO("Started '%s' @%.1f Hz → %s",
              cfg_.name.c_str(),
-             cfg_.width, cfg_.height, cfg_.framerate,
+             cfg_.framerate,
              topic_.c_str());
 
     // launch worker thread
@@ -272,20 +309,12 @@ void CameraHandler::spin()
 // -------- dynamic reconfigure callback --------
 void CameraHandler::reconfigureCallback(flir_camera_node::FlirConfig &config, uint32_t level)
 {
+    ROS_INFO("Reconfigure CB: will set exp=%.1f gain=%.1f fps=%.1f",
+        config.exposure, config.gain, config.framerate);
+        
     std::lock_guard<std::mutex> lk(cam_mutex_);
     auto &nm = cam_->GetNodeMap();
     using namespace Spinnaker::GenApi;
-
-    // Enable and set decimation
-    setEnum(nm, "DecimationMode", "On");
-    {
-        CIntegerPtr decH = nm.GetNode("DecimationHorizontal");
-        if (decH && IsWritable(decH))
-            decH->SetValue(config.decimation_x);
-        CIntegerPtr decV = nm.GetNode("DecimationVertical");
-        if (decV && IsWritable(decV))
-            decV->SetValue(config.decimation_y);
-    }
 
     // Exposure (manual)
     {
@@ -320,9 +349,7 @@ void CameraHandler::reconfigureCallback(flir_camera_node::FlirConfig &config, ui
         }
     }
 
-    ROS_INFO("Reconfigure: decH=%d decV=%d exp=%.1f gain=%.1f fps=%.1f",
-             config.decimation_x,
-             config.decimation_y,
+    ROS_INFO("Reconfigure: exp=%.1f gain=%.1f fps=%.1f",
              config.exposure,
              config.gain,
              config.framerate);
@@ -352,15 +379,31 @@ CameraHandler::~CameraHandler()
         worker_.join();
 }
 
-// ----------------------------------------------------
-//  main()
-// ----------------------------------------------------
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "flir_camera_node_node");
     ros::NodeHandle nh("~");
 
-    // YAML → vector<CamConfig>
+    auto readDouble = [&](XmlRpc::XmlRpcValue &v,
+                          const std::string &key,
+                          double default_val) -> double
+    {
+        if (!v.hasMember(key))
+            return default_val;
+
+        XmlRpc::XmlRpcValue &x = v[key];
+        switch (x.getType())
+        {
+        case XmlRpc::XmlRpcValue::TypeDouble:
+            return static_cast<double>(x);
+        case XmlRpc::XmlRpcValue::TypeInt:
+            return static_cast<int>(x);
+        default:
+            throw std::runtime_error(
+                "Param '" + key + "' has wrong type (must be int or double)");
+        }
+    };
+
     XmlRpc::XmlRpcValue cam_list;
     if (!nh.getParam("camera_config/cameras", cam_list) ||
         cam_list.getType() != XmlRpc::XmlRpcValue::TypeArray)
@@ -378,35 +421,62 @@ int main(int argc, char **argv)
 
     std::unordered_map<std::string, CamConfig> config_map;
     int primary_count = 0;
+    int secondary_count = 0;
+
     for (int i = 0; i < cam_list.size(); ++i)
     {
         auto &e = cam_list[i];
         CamConfig c;
         c.serial = static_cast<std::string>(require(e, "serial"));
         c.name = static_cast<std::string>(require(e, "name"));
-        c.framerate = static_cast<double>(require(e, "framerate"));
-        c.width = static_cast<int>(require(e, "width"));
-        c.height = static_cast<int>(require(e, "height"));
-        if (!e.hasMember("primary"))
-            throw std::runtime_error("Missing YAML key: primary");
-        c.primary = static_cast<bool>(e["primary"]);
-        if (c.primary)
-            ++primary_count;
+        c.framerate = readDouble(e, "framerate", 30.0);
+        c.exposure = readDouble(e, "exposure", 10000.0);
+        c.gain = readDouble(e, "gain", 1.0);
 
+        // Video Mode
+        if (e.hasMember("video_mode"))
+            c.video_mode = static_cast<std::string>(e["video_mode"]);
+        else
+            c.video_mode = "Mode0";
+
+        // Shutter mode
+        std::string role_str = static_cast<std::string>(require(e, "role"));
+        if (role_str == "primary")
+            c.role = Role::PRIMARY;
+        else if (role_str == "secondary")
+            c.role = Role::SECONDARY;
+        else if (role_str == "solo")
+            c.role = Role::SOLO;
+        else
+            throw std::runtime_error("Invalid role: " + role_str);
+
+        if (c.role == Role::PRIMARY)
+            ++primary_count;
+        else if (c.role == Role::SECONDARY)
+            ++secondary_count;
+
+        // Store config
         config_map[c.serial] = c;
-        ROS_INFO("YAML cfg: %s → serial=%s, %dx%d@%.1f Hz (primary=%s)",
-                 c.name.c_str(), c.serial.c_str(),
-                 c.width, c.height, c.framerate,
-                 c.primary ? "true" : "false");
+
+        // Print config
+        ROS_INFO(
+            "YAML cfg: %s → serial=%s @%.1f Hz (role=%s, video_mode=%s, exposure=%.1fus, gain=%.1f)",
+            c.name.c_str(),
+            c.serial.c_str(),
+            c.framerate,
+            role_str.c_str(),
+            c.video_mode.c_str(),
+            c.exposure,
+            c.gain);
     }
 
-    if (primary_count != 1)
+    // only enforce “exactly one primary” if we have any secondaries
+    if (secondary_count > 0 && primary_count != 1)
     {
-        ROS_FATAL("Exactly one camera must have primary: true (found %d)", primary_count);
+        ROS_FATAL("When secondaries are present, exactly one camera must be primary (found %d)", primary_count);
         return 1;
     }
 
-    // enumerate cameras and spawn handlers
     auto system = Spinnaker::System::GetInstance();
     auto camList = system->GetCameras();
     unsigned int total = camList.GetSize();
@@ -423,10 +493,6 @@ int main(int argc, char **argv)
         if (strPtr && Spinnaker::GenApi::IsReadable(strPtr))
         {
             serial = strPtr->GetValue();
-        }
-        else
-        {
-            serial = "";
         }
 
         auto it = config_map.find(serial);
@@ -453,7 +519,6 @@ int main(int argc, char **argv)
 
     ros::spin();
 
-    // clean shutdown
     for (auto &h : handlers)
         h->stop();
 
