@@ -31,7 +31,6 @@ app.get('/api/cameras', async (req, res) => {
       fileContents = await fs.readFile(camerasFile, 'utf8');
     } catch (err) {
       if (err.code === 'ENOENT') {
-        // File doesn’t exist: write a default
         const defaultConfig = { camera_config: { cameras: [] } };
         fileContents = yaml.dump(defaultConfig);
         await fs.writeFile(camerasFile, fileContents, 'utf8');
@@ -40,7 +39,6 @@ app.get('/api/cameras', async (req, res) => {
       }
     }
 
-    // Parse YAML and return JSON
     const data = yaml.load(fileContents);
     res.json(data);
   } catch (err) {
@@ -49,9 +47,8 @@ app.get('/api/cameras', async (req, res) => {
   }
 });
 
-// POST /api/cameras — create a new camera entry
+// POST /api/cameras - create a new camera entry
 app.post('/api/cameras', async (req, res) => {
-  // now also pulling framerate, exposure, gain with defaults
   const {
     serial,
     name = '',
@@ -62,7 +59,6 @@ app.post('/api/cameras', async (req, res) => {
     gain = 18.4
   } = req.body;
 
-  // Basic validation
   if (!serial || !role || !video_mode) {
     return res.status(400).json({ error: 'serial, role and video_mode are required' });
   }
@@ -70,15 +66,12 @@ app.post('/api/cameras', async (req, res) => {
   try {
     await fs.mkdir(path.dirname(camerasFile), { recursive: true });
 
-    // Load or initialize
     let fileContents;
     try {
       fileContents = await fs.readFile(camerasFile, 'utf8');
     } catch (err) {
       if (err.code === 'ENOENT') {
-        // No file yet—start with empty cameras array
         const defaultConfig = { camera_config: { cameras: [] } };
-        // forceQuotes=true will wrap all strings in double quotes
         fileContents = yaml.dump(defaultConfig, { quotingType: '"', forceQuotes: true });
         await fs.writeFile(camerasFile, fileContents, 'utf8');
       } else {
@@ -86,12 +79,10 @@ app.post('/api/cameras', async (req, res) => {
       }
     }
 
-    // Parse YAML
     const data = yaml.load(fileContents) || {};
     data.camera_config = data.camera_config || {};
     data.camera_config.cameras = data.camera_config.cameras || [];
 
-    // Build the new camera object, including your three defaults
     const newCamera = {
       serial: String(serial),
       name: String(name),
@@ -102,7 +93,6 @@ app.post('/api/cameras', async (req, res) => {
       gain: Number(gain)
     };
 
-    // Append and save (with forced double quotes on all strings)
     data.camera_config.cameras.push(newCamera);
     const newYaml = yaml.dump(data, { quotingType: '"', forceQuotes: true });
     await fs.writeFile(camerasFile, newYaml, 'utf8');
@@ -116,10 +106,9 @@ app.post('/api/cameras', async (req, res) => {
 });
 
 
-// PUT /api/cameras/:serial — update an existing camera
+// PUT /api/cameras/:serial - update an existing camera
 app.put('/api/cameras/:serial', async (req, res) => {
   const serial = req.params.serial;
-  // pull framerate/exposure/gain too, with defaults
   const {
     name = '',
     role,
@@ -152,7 +141,6 @@ app.put('/api/cameras/:serial', async (req, res) => {
       return res.status(404).json({ error: 'Camera not found' });
     }
 
-    // merge updated fields (incl. your three new ones)
     cams[idx] = {
       ...cams[idx],
       name: String(name),
@@ -177,7 +165,7 @@ app.put('/api/cameras/:serial', async (req, res) => {
 });
 
 
-// DELETE /api/cameras/:serial — remove a camera
+// DELETE /api/cameras/:serial - remove a camera
 app.delete('/api/cameras/:serial', async (req, res) => {
   const serial = req.params.serial;
   try {
@@ -210,7 +198,7 @@ app.delete('/api/cameras/:serial', async (req, res) => {
   }
 });
 
-// Your existing page routes
+// Page routes
 app.get('/', (req, res) => {
   res.render('dashboard', { active: 'dashboard' });
 });

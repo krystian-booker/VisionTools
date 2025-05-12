@@ -6,12 +6,10 @@
         border: 2px dashed #ced4da;
     }
 
-    /* make card a positioning context */
     .card.position-relative {
         position: relative;
     }
 
-    /* overlay buttons container, hidden by default */
     .overlay-buttons {
         position: absolute;
         top: 0.5rem;
@@ -20,12 +18,10 @@
         gap: 0.25rem;
     }
 
-    /* show on hover */
     .card.position-relative:hover .overlay-buttons {
         display: flex;
     }
 
-    /* ensure modal text is dark */
     #confirmDeleteModal .modal-header .modal-title,
     #confirmDeleteModal .modal-body {
         color: #000 !important;
@@ -116,7 +112,6 @@
         const deleteModal = new bootstrap.Modal(deleteModalEl);
         let cameraToDeleteSerial = null;
 
-        // Fetch & render existing cameras
         fetch('/api/cameras')
             .then(r => r.json())
             .then(data => {
@@ -125,7 +120,6 @@
             })
             .catch(err => console.error('Could not load cameras:', err));
 
-        // Confirm‐delete handler (only once)
         confirmDeleteBtn.addEventListener('click', async () => {
             if (!cameraToDeleteSerial) return;
             try {
@@ -151,7 +145,7 @@
             }
         });
 
-        // “Add” → show blank form
+        // “Add” - show blank form
         addCard.addEventListener('click', () => {
             const frag = formTpl.content.cloneNode(true);
             const formCol = frag.querySelector('.col-12.col-md-6');
@@ -213,13 +207,13 @@
             `;
             cameraCards.insertBefore(col, addCardCol);
 
-            // Delete button → open modal
+            // Delete button - open modal
             col.querySelector('.delete-btn').addEventListener('click', () => {
                 cameraToDeleteSerial = camera.serial;
                 deleteModal.show();
             });
 
-            // Edit button → inline form
+            // Edit button - inline form
             col.querySelector('.edit-btn').addEventListener('click', () => {
                 const frag = formTpl.content.cloneNode(true);
                 const formCol = frag.querySelector('.col-12.col-md-6');
@@ -238,13 +232,13 @@
                 thisCol.replaceWith(formCol);
                 requestAnimationFrame(() => form.classList.add('show'));
 
-                // Cancel → restore card
+                // Cancel - restore card
                 form.querySelector('.cancel-form').addEventListener('click', () => {
                     formCol.remove();
                     cameraCards.insertBefore(thisCol, nextSibling);
                 });
 
-                // Submit → PUT update
+                // Submit - PUT update
                 form.addEventListener('submit', async ev => {
                     ev.preventDefault();
                     try {

@@ -125,30 +125,3 @@ fi
 echo "✅  TagSLAM and Kalibr have been built successfully!"
 
 # roslaunch flir_camera_node flir_cameras.launch
-
-# Setup Nginx to serve $REPO_NAME/web
-echo "Configuring Nginx to serve ~/$REPO_NAME/web ..."
-NGINX_CONF="/etc/nginx/sites-available/$REPO_NAME"
-sudo tee "${NGINX_CONF}" > /dev/null <<EOF
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    root \$HOME/$REPO_NAME/web;
-    index index.html index.htm;
-    server_name _;
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-}
-EOF
-
-# Enable our site, disable default, reload
-sudo ln -sf "${NGINX_CONF}" /etc/nginx/sites-enabled/$REPO_NAME
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl reload nginx
-
-# Ensure the web directory is world-readable
-chmod -R o+rx "$HOME/$REPO_NAME/web"
-
-echo "✅  Nginx is now serving your web UI at http://<this-machine-IP>/"
