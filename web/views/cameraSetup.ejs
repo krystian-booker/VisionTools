@@ -1,3 +1,5 @@
+<!-- cameraSetup.ejs -->
+
 <h1 class='mb-3'>Camera Setup</h1>
 <p class='text-muted'>Configure and test your cameras.</p>
 
@@ -25,6 +27,17 @@
     #confirmDeleteModal .modal-header .modal-title,
     #confirmDeleteModal .modal-body {
         color: #000 !important;
+    }
+
+    .camera-server-controls {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        display: flex;
+        align-items: flex-end;
+        gap: 0.5rem;
+        z-index: 1050;
+        padding: 1rem;
     }
 </style>
 
@@ -101,6 +114,16 @@
     </div>
 </div>
 
+<!-- Camera Server Controls -->
+<div id="cameraServerControls" class="camera-server-controls">
+    <div id="pendingChangesNotification" class="alert alert-warning mb-0 d-none" role="alert">
+        Camera changes won't take effect until the Cameras are restarted.
+    </div>
+    <button id="restartServerBtn" class="btn btn-success">
+        Restart Cameras
+    </button>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const cameraCards = document.getElementById('cameraCards');
@@ -112,6 +135,32 @@
         const deleteModal = new bootstrap.Modal(deleteModalEl);
         let cameraToDeleteSerial = null;
 
+        // ----- camera-server controls -----
+        let pendingChanges = false;
+        const pendingNotification = document.getElementById('pendingChangesNotification');
+        const restartBtn = document.getElementById('restartServerBtn');
+
+        function markPendingChanges() {
+            if (!pendingChanges) {
+                pendingChanges = true;
+                pendingNotification.classList.remove('d-none');
+            }
+        }
+
+        restartBtn.addEventListener('click', async () => {
+            try {
+                const res = await fetch('/api/cameras/restart', { method: 'POST' });
+                if (!res.ok) throw new Error('Failed to restart camera server');
+                alert('Camera server restarted.');
+                pendingChanges = false;
+                pendingNotification.classList.add('d-none');
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+        // ----- end camera-server controls -----
+
+        // Load existing cameras
         fetch('/api/cameras')
             .then(r => r.json())
             .then(data => {
@@ -120,6 +169,7 @@
             })
             .catch(err => console.error('Could not load cameras:', err));
 
+        // Delete confirmation
         confirmDeleteBtn.addEventListener('click', async () => {
             if (!cameraToDeleteSerial) return;
             try {
@@ -139,6 +189,7 @@
 
                 cameraToDeleteSerial = null;
                 deleteModal.hide();
+                markPendingChanges();
             } catch (err) {
                 console.error(err);
                 alert(err.message);
@@ -174,6 +225,7 @@
                     formCol.remove();
                     cameraCards.appendChild(addCardCol);
                     renderCameraCard(saved);
+                    markPendingChanges();
                 } catch (err) {
                     alert(err.message);
                 }
@@ -187,22 +239,22 @@
             col.className = 'col-12 col-md-6';
             col.innerHTML = `
                 <div class="card h-100 position-relative" data-serial="${camera.serial}">
-                <div class="overlay-buttons">
+                  <div class="overlay-buttons">
                     <button class="btn btn-sm btn-success edit-btn">
-                    <i class="bi bi-pencil"></i>
+                      <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-sm btn-danger delete-btn">
-                    <i class="bi bi-trash"></i>
+                      <i class="bi bi-trash"></i>
                     </button>
-                </div>
-                <div class="card-header">
+                  </div>
+                  <div class="card-header">
                     <strong>${camera.name || camera.serial}</strong>
-                </div>
-                <div class="card-body">
+                  </div>
+                  <div class="card-body">
                     <p><strong>Serial:</strong> ${camera.serial}</p>
                     <p><strong>Role:</strong> ${prettyRole}</p>
                     <p><strong>Video Mode:</strong> ${camera.video_mode}</p>
-                </div>
+                  </div>
                 </div>
             `;
             cameraCards.insertBefore(col, addCardCol);
@@ -263,6 +315,7 @@
 
                         // Restore position
                         cameraCards.insertBefore(thisCol, nextSibling);
+                        markPendingChanges();
                     } catch (err) {
                         alert(err.message);
                     }
