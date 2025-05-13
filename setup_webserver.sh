@@ -9,3 +9,5 @@ sudo apt-get install -y nodejs npm build-essential ros-noetic-rosbridge-server
 
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
+
+pip3 install flask

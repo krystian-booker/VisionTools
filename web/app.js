@@ -3,6 +3,7 @@ const expressLayouts = require('express-ejs-layouts');
 const path = require('path');
 const fs = require('fs').promises;
 const yaml = require('js-yaml');
+const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -200,8 +201,10 @@ app.delete('/api/cameras/:serial', async (req, res) => {
 
 // Page routes
 app.get('/', (req, res) => {
-  res.render('dashboard', { active: 'dashboard' });
+  const localIP = getLocalIP();
+  res.render('dashboard', { active: 'dashboard', localIP });
 });
+
 app.get('/camera-setup', (req, res) => {
   res.render('cameraSetup', { active: 'camera-setup' });
 });
@@ -212,7 +215,36 @@ app.get('/about', (req, res) => {
   res.render('about', { active: 'about' });
 });
 
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const iface of Object.values(interfaces)) {
+    for (const config of iface) {
+      if (config.family === 'IPv4' && !config.internal) {
+        return config.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  const interfaces = os.networkInterfaces();
+  let localIP = 'localhost';
+
+  // Loop through interfaces to find the first non-internal IPv4 address
+  for (const iface of Object.values(interfaces)) {
+    for (const config of iface) {
+      if (config.family === 'IPv4' && !config.internal) {
+        localIP = config.address;
+        break;
+      }
+    }
+    if (localIP !== 'localhost') break;
+  }
+
+  console.log(`Website running on:`);
+  console.log(`http://localhost:${PORT}`);
+  console.log(`http://${localIP}:${PORT}`);
 });

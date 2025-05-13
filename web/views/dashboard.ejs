@@ -1,8 +1,9 @@
 <h1>FRC VisionTools</h1>
 <div id="status" class="status mb-3">Connecting…</div>
 <script>
-    const ros = new ROSLIB.Ros({ url: 'ws://localhost:9090' });
+    const ros = new ROSLIB.Ros({ url: 'ws://<%= localIP %>:9090' });
     const statusEl = document.getElementById('status');
+
     ros.on('connection', () => {
         statusEl.textContent = '🟢 Connected to ROS!';
         statusEl.className = 'status connected mb-3';
@@ -15,6 +16,7 @@
         statusEl.textContent = '⚪ Connection closed';
         statusEl.className = 'status closed mb-3';
     });
+
     const listener = new ROSLIB.Topic({ ros, name: '/chatter', messageType: 'std_msgs/String' });
     listener.subscribe(msg => {
         console.log('Received on /chatter:', msg.data);
