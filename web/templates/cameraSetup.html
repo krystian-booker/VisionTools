@@ -1,7 +1,8 @@
-<!-- cameraSetup.ejs -->
+{% extends "layout.html" %}
 
-<h1 class='mb-3'>Camera Setup</h1>
-<p class='text-muted'>Configure and test your cameras.</p>
+{% block content %}
+<h1 class="mb-3">Camera Setup</h1>
+<p class="text-muted">Configure and test your cameras.</p>
 
 <style>
     .border-dashed {
@@ -41,12 +42,12 @@
     }
 </style>
 
-<div class='row g-3' id='cameraCards'>
-    <div class='col-12 col-md-6' id='addCardCol'>
-        <div id='addCard' class='card h-100 d-flex align-items-center justify-content-center p-5 border-dashed'
-            role='button'>
-            <span class='display-4'>&#43;</span>
-            <span class='fw-semibold mt-2'>Add Camera</span>
+<div class="row g-3" id="cameraCards">
+    <div class="col-12 col-md-6" id="addCardCol">
+        <div id="addCard" class="card h-100 d-flex align-items-center justify-content-center p-5 border-dashed"
+            role="button">
+            <span class="display-4">&#43;</span>
+            <span class="fw-semibold mt-2">Add Camera</span>
         </div>
     </div>
 </div>
@@ -238,25 +239,25 @@
             const col = document.createElement('div');
             col.className = 'col-12 col-md-6';
             col.innerHTML = `
-                <div class="card h-100 position-relative" data-serial="${camera.serial}">
-                  <div class="overlay-buttons">
-                    <button class="btn btn-sm btn-success edit-btn">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger delete-btn">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                  <div class="card-header">
-                    <strong>${camera.name || camera.serial}</strong>
-                  </div>
-                  <div class="card-body">
-                    <p><strong>Serial:</strong> ${camera.serial}</p>
-                    <p><strong>Role:</strong> ${prettyRole}</p>
-                    <p><strong>Video Mode:</strong> ${camera.video_mode}</p>
-                  </div>
-                </div>
-            `;
+        <div class="card h-100 position-relative" data-serial="${camera.serial}">
+          <div class="overlay-buttons">
+            <button class="btn btn-sm btn-success edit-btn">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-danger delete-btn">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <div class="card-header">
+            <strong>${camera.name || camera.serial}</strong>
+          </div>
+          <div class="card-body">
+            <p><strong>Serial:</strong> ${camera.serial}</p>
+            <p><strong>Role:</strong> ${prettyRole}</p>
+            <p><strong>Video Mode:</strong> ${camera.video_mode}</p>
+          </div>
+        </div>
+      `;
             cameraCards.insertBefore(col, addCardCol);
 
             // Delete button - open modal
@@ -278,7 +279,6 @@
                 form.name.value = camera.name;
                 form.role.value = camera.role;
                 form.video_mode.value = camera.video_mode;
-                form.serial.readOnly = true;
 
                 // Swap in place
                 thisCol.replaceWith(formCol);
@@ -302,25 +302,18 @@
                         });
                         if (!res.ok) throw new Error('Update failed');
                         const updated = await res.json();
+
                         formCol.remove();
-
-                        // Update text in-place
-                        const card = thisCol.querySelector('.card');
-                        card.querySelector('.card-header strong')
-                            .textContent = updated.name || updated.serial;
-                        const ps = card.querySelectorAll('.card-body p');
-                        ps[0].innerHTML = `<strong>Serial:</strong> ${updated.serial}`;
-                        ps[1].innerHTML = `<strong>Role:</strong> ${updated.role}`;
-                        ps[2].innerHTML = `<strong>Video Mode:</strong> ${updated.video_mode}`;
-
-                        // Restore position
-                        cameraCards.insertBefore(thisCol, nextSibling);
+                        thisCol.remove();
+                        renderCameraCard(updated);
                         markPendingChanges();
                     } catch (err) {
                         alert(err.message);
                     }
                 });
+
             });
         }
     });
 </script>
+{% endblock %}

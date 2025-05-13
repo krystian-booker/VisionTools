@@ -1,0 +1,47 @@
+<nav id="sidebar" class="p-3">
+    <div class="list-group list-group-flush">
+        <a href="/" class="list-group-item {% if active == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2 me-2"></i>
+            Dashboard
+        </a>
+
+        <a id="settingsToggle"
+            class="list-group-item d-flex justify-content-between align-items-center {% if not active.startswith('camera') %}collapsed{% endif %}"
+            data-bs-toggle="collapse" href="#settingsCollapse" aria-expanded="{{ active.startswith('camera') }}"
+            aria-controls="settingsCollapse">
+            <span><i class="bi bi-gear me-2"></i>Settings</span>
+            <i id="settingsIcon"
+                class="settings-icon {% if active.startswith('camera') %}bi-chevron-down{% else %}bi-chevron-right{% endif %}"></i>
+        </a>
+
+        <div class="collapse {% if active.startswith('camera') %}show{% endif %}" id="settingsCollapse">
+            <a href="/camera-setup" class="list-group-item ps-4 {% if active == 'camera-setup' %}active{% endif %}">
+                Camera Setup
+            </a>
+            <a href="/camera-calibration"
+                class="list-group-item ps-4 {% if active == 'camera-calibration' %}active{% endif %}">
+                Camera Calibration
+            </a>
+        </div>
+
+        <a href="/about" class="list-group-item {% if active == 'about' %}active{% endif %}">
+            <i class="bi bi-info-circle me-2"></i>
+            About
+        </a>
+    </div>
+
+    <script>
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsIcon = document.getElementById('settingsIcon');
+        const collapseEl = document.getElementById('settingsCollapse');
+
+        collapseEl.addEventListener('show.bs.collapse', () => {
+            settingsToggle.classList.remove('collapsed');
+            settingsIcon.classList.replace('bi-chevron-right', 'bi-chevron-down');
+        });
+        collapseEl.addEventListener('hide.bs.collapse', () => {
+            settingsToggle.classList.add('collapsed');
+            settingsIcon.classList.replace('bi-chevron-down', 'bi-chevron-right');
+        });
+    </script>
+</nav>

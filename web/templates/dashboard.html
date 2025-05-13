@@ -1,7 +1,10 @@
+{% extends "layout.html" %}
+
+{% block content %}
 <h1>FRC VisionTools</h1>
 <div id="status" class="status mb-3">Connecting…</div>
 <script>
-    const ros = new ROSLIB.Ros({ url: 'ws://<%= localIP %>:9090' });
+    const ros = new ROSLIB.Ros({ url: 'ws://{{ localIP }}:9090' });
     const statusEl = document.getElementById('status');
 
     ros.on('connection', () => {
@@ -23,3 +26,4 @@
         listener.unsubscribe();
     });
 </script>
+{% endblock %}

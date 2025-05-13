@@ -50,7 +50,7 @@ sudo apt install -y ros-noetic-desktop-full python3-rosdep python3-rosinstall py
     libopencv-dev libpoco-dev libtbb-dev libblas-dev liblapack-dev libv4l-dev \
     python3-dev python3-pip python3-scipy python3-matplotlib ipython3 python3-wxgtk4.0 \
     python3-tk python3-igraph python3-pyx \
-    libgoogle-glog-dev libgflags-dev libglew-dev
+    libgoogle-glog-dev libgflags-dev libglew-dev ros-noetic-rosbridge-server
 
 # Source ROS now for this script to use its commands
 source /opt/ros/noetic/setup.bash
@@ -121,6 +121,11 @@ WORKSPACE_SETUP="source \$HOME/$REPO_NAME/devel/setup.bash"
 if ! grep -Fxq "$WORKSPACE_SETUP" "$HOME/.bashrc"; then
     echo "$WORKSPACE_SETUP" >> "$HOME/.bashrc"
 fi
+
+####################################
+# Web requirements
+####################################
+pip3 install flask
 
 echo "✅  TagSLAM and Kalibr have been built successfully!"
 
