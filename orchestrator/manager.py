@@ -6,6 +6,12 @@ import socket
 import os
 from pathlib import Path
 
+# Config location
+config_home = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
+config_dir  = config_home / "frcVisionTools"
+config_dir.mkdir(parents=True, exist_ok=True)
+CAMERAS_FILE = config_dir / "cameras.yaml"
+
 # keep track of running subprocesses
 processes = {}
 
@@ -60,8 +66,12 @@ def stop_rosbridge():
     return _terminate('rosbridge')
 
 def start_flir():
-    return _launch('flir',
-                   ['roslaunch', 'flir_camera_node', 'flir_cameras.launch'])
+    return _launch('flir', [
+        'roslaunch',
+        'flir_camera_node',
+        'flir_cameras.launch',
+        f'cameras_file:={CAMERAS_FILE}'
+    ])
 
 def stop_flir():
     return _terminate('flir')
