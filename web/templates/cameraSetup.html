@@ -122,10 +122,13 @@
     </div>
     <button id="restartServerBtn" class="btn btn-success">
         Restart Cameras
+        <span id="restartSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"
+            aria-hidden="true"></span>
     </button>
 </div>
 
 <script>
+
     document.addEventListener('DOMContentLoaded', () => {
         const cameraCards = document.getElementById('cameraCards');
         const addCardCol = document.getElementById('addCardCol');
@@ -149,14 +152,20 @@
         }
 
         restartBtn.addEventListener('click', async () => {
+            const spinner = document.getElementById('restartSpinner');
+            restartBtn.disabled = true;
+            spinner.classList.remove('d-none');
+
             try {
                 const res = await fetch('/api/cameras/restart', { method: 'POST' });
                 if (!res.ok) throw new Error('Failed to restart camera server');
-                alert('Camera server restarted.');
-                pendingChanges = false;
+                toastr.success('Camera server restarted.');
                 pendingNotification.classList.add('d-none');
             } catch (err) {
-                alert(err.message);
+                toastr.error(err.message, 'Error');
+            } finally {
+                spinner.classList.add('d-none');
+                restartBtn.disabled = false;
             }
         });
         // ----- end camera-server controls -----
@@ -239,25 +248,25 @@
             const col = document.createElement('div');
             col.className = 'col-12 col-md-6';
             col.innerHTML = `
-        <div class="card h-100 position-relative" data-serial="${camera.serial}">
-          <div class="overlay-buttons">
-            <button class="btn btn-sm btn-success edit-btn">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-sm btn-danger delete-btn">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-          <div class="card-header">
-            <strong>${camera.name || camera.serial}</strong>
-          </div>
-          <div class="card-body">
-            <p><strong>Serial:</strong> ${camera.serial}</p>
-            <p><strong>Role:</strong> ${prettyRole}</p>
-            <p><strong>Video Mode:</strong> ${camera.video_mode}</p>
-          </div>
-        </div>
-      `;
+                <div class="card h-100 position-relative" data-serial="${camera.serial}">
+                <div class="overlay-buttons">
+                    <button class="btn btn-sm btn-success edit-btn">
+                    <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-btn">
+                    <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="card-header">
+                    <strong>${camera.name || camera.serial}</strong>
+                </div>
+                <div class="card-body">
+                    <p><strong>Serial:</strong> ${camera.serial}</p>
+                    <p><strong>Role:</strong> ${prettyRole}</p>
+                    <p><strong>Video Mode:</strong> ${camera.video_mode}</p>
+                </div>
+                </div>
+            `;
             cameraCards.insertBefore(col, addCardCol);
 
             // Delete button - open modal
