@@ -3,6 +3,7 @@ import os
 from flask import Blueprint, jsonify, request, current_app
 from pathlib import Path
 import yaml
+from orchestrator.manager import restart_flir
 
 # Ensure specific strings are always double-quoted in YAML
 class QuotedString(str): pass
@@ -149,3 +150,8 @@ def delete_camera(serial):
     except Exception as e:
         current_app.logger.error(f"Error deleting camera: {e}")
         return jsonify(error='Could not delete camera'), 500
+    
+@api_bp.route('/cameras/restart', methods=['POST'])
+def restart_cameras():
+    success, msg = restart_flir()
+    return jsonify({'success': success, 'detail': msg}), (200 if success else 500)
