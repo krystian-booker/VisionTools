@@ -3,27 +3,88 @@
 {% block content %}
 <h1>FRC VisionTools</h1>
 <div id="status" class="status mb-3">Connecting…</div>
+
+<!-- Camera Tabs -->
+<ul id="camera-tabs" class="nav nav-tabs mb-3"></ul>
+
+<!-- Camera Feed -->
+<div id="camera-feed" class="mt-4">
+    <h2>Camera Feed</h2>
+    <img id="camera-img" width="640" height="480" />
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
 <script>
     const ros = new ROSLIB.Ros({ url: 'ws://{{ localIP }}:9090' });
     const statusEl = document.getElementById('status');
+    const cameraTabsEl = document.getElementById('camera-tabs');
+    const cameraImgEl = document.getElementById('camera-img');
 
     ros.on('connection', () => {
         statusEl.textContent = '🟢 Connected to ROS!';
         statusEl.className = 'status connected mb-3';
+
+        ros.getTopics((topics) => {
+            const matchingTopics = topics.topics.filter(topic =>
+                topic.startsWith('/camera/') && topic.endsWith('/image_raw')
+            );
+
+            cameraTabsEl.innerHTML = '';
+
+            if (matchingTopics.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                const link = document.createElement('a');
+                link.className = 'nav-link disabled';
+                link.textContent = 'No cameras available';
+                li.appendChild(link);
+                cameraTabsEl.appendChild(li);
+            } else {
+                matchingTopics.forEach((topic, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'nav-item';
+                    const link = document.createElement('a');
+                    link.className = 'nav-link';
+                    if (index === 0) link.classList.add('active');
+                    link.href = '#';
+                    // Display a friendly name, e.g. camera1
+                    link.textContent = topic.split('/').slice(-2, -1)[0] || topic;
+                    link.onclick = (e) => {
+                        e.preventDefault();
+                        selectTab(topic, link);
+                    };
+                    li.appendChild(link);
+                    cameraTabsEl.appendChild(li);
+                });
+
+                // Start first camera by default
+                startStream(matchingTopics[0]);
+            }
+        });
     });
+
+    function selectTab(topicName, linkEl) {
+        // Update active tab styling
+        const links = cameraTabsEl.querySelectorAll('a.nav-link');
+        links.forEach(a => a.classList.remove('active'));
+        linkEl.classList.add('active');
+
+        // Switch stream
+        startStream(topicName);
+    }
+
+    function startStream(topicName) {
+        cameraImgEl.src = `http://{{ localIP }}:8080/stream?topic=${topicName}`;
+    }
+
     ros.on('error', () => {
         statusEl.textContent = '🔴 Connection error';
         statusEl.className = 'status error mb-3';
     });
+
     ros.on('close', () => {
         statusEl.textContent = '⚪ Connection closed';
         statusEl.className = 'status closed mb-3';
-    });
-
-    const listener = new ROSLIB.Topic({ ros, name: '/chatter', messageType: 'std_msgs/String' });
-    listener.subscribe(msg => {
-        console.log('Received on /chatter:', msg.data);
-        listener.unsubscribe();
     });
 </script>
 {% endblock %}

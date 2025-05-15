@@ -6,6 +6,12 @@ import socket
 import os
 from pathlib import Path
 
+# Config location
+config_home = Path(os.getenv("XDG_CONFIG_HOME", Path.home() / ".config"))
+config_dir  = config_home / "frcVisionTools"
+config_dir.mkdir(parents=True, exist_ok=True)
+CAMERAS_FILE = config_dir / "cameras.yaml"
+
 # keep track of running subprocesses
 processes = {}
 
@@ -34,17 +40,22 @@ def _launch(name, cmd, cwd=None, delay=1):
         return False, f"Failed to start {name}"
     return True, f"{name} started"
 
-def _terminate(name):
-    """Helper to stop a subprocess if it exists."""
+def _terminate(name, timeout=5):
+    """Helper to stop a subprocess and wait (up to timeout) for it to actually exit."""
     p = processes.get(name)
     if not p or p.poll() is not None:
         return False, f"{name} not running"
+
     p.terminate()
     try:
-        p.wait(timeout=5)
+        p.wait(timeout=timeout)
+        # cleanup entry so launch can reuse the slot
+        del processes[name]
+        return True, f"{name} stopped"
     except subprocess.TimeoutExpired:
         p.kill()
-    return True, f"{name} stopped"
+        del processes[name]
+        return False, f"{name} did not stop gracefully"
 
 def start_roscore():
     return _launch('roscore', ['roscore'], delay=2)
@@ -60,11 +71,63 @@ def stop_rosbridge():
     return _terminate('rosbridge')
 
 def start_flir():
-    return _launch('flir',
-                   ['roslaunch', 'flir_camera_node', 'flir_cameras.launch'])
+    return _launch('flir', [
+        'roslaunch',
+        'flir_camera_node',
+        'flir_cameras.launch',
+        f'cameras_file:={CAMERAS_FILE}'
+    ])
 
 def stop_flir():
-    return _terminate('flir')
+    return _terminate('flir', timeout=5)
+
+def restart_flir():
+    stopped, stop_msg = stop_flir()
+    # ignore “not running” errors
+    if not stopped and "not running" in stop_msg:
+        stop_msg = f"{stop_msg} (okay)"
+    elif not stopped:
+        # some other failure: include it in the message but still try to start
+        stop_msg = f"stop error: {stop_msg}"
+
+    started, start_msg = start_flir()
+    # overall success = whether start succeeded
+    combined_msg = {'stop': stop_msg, 'start': start_msg}
+    return started, combined_msg
+
+def start_video_server(port: int = 8080, address: str = '0.0.0.0'):
+    """
+    Launch the ROS web_video_server on the given port and address.
+    By default this runs:
+      rosrun web_video_server web_video_server _port:=8080 _address:=0.0.0.0
+    """
+    cmd = [
+        'rosrun',
+        'web_video_server',
+        'web_video_server',
+        f'_port:={port}',
+        f'_address:={address}',
+    ]
+    return _launch('video_server', cmd)
+
+def stop_video_server():
+    """
+    Terminate the web_video_server subprocess if it is running.
+    """
+    return _terminate('video_server')
+
+def restart_video_server(port: int = 8080, address: str = '0.0.0.0'):
+    """
+    Helper to restart the video server, returning a dict with 'stop' and 'start' messages.
+    """
+    stopped, stop_msg = stop_video_server()
+    if not stopped and "not running" in stop_msg:
+        stop_msg = f"{stop_msg} (okay)"
+    elif not stopped:
+        stop_msg = f"stop error: {stop_msg}"
+
+    started, start_msg = start_video_server(port, address)
+    return started, {'stop': stop_msg, 'start': start_msg}
 
 def get_status():
     """Return a dict of {service_name: 'running'|'stopped'}."""
