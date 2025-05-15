@@ -95,6 +95,40 @@ def restart_flir():
     combined_msg = {'stop': stop_msg, 'start': start_msg}
     return started, combined_msg
 
+def start_video_server(port: int = 8080, address: str = '0.0.0.0'):
+    """
+    Launch the ROS web_video_server on the given port and address.
+    By default this runs:
+      rosrun web_video_server web_video_server _port:=8080 _address:=0.0.0.0
+    """
+    cmd = [
+        'rosrun',
+        'web_video_server',
+        'web_video_server',
+        f'_port:={port}',
+        f'_address:={address}',
+    ]
+    return _launch('video_server', cmd)
+
+def stop_video_server():
+    """
+    Terminate the web_video_server subprocess if it is running.
+    """
+    return _terminate('video_server')
+
+def restart_video_server(port: int = 8080, address: str = '0.0.0.0'):
+    """
+    Helper to restart the video server, returning a dict with 'stop' and 'start' messages.
+    """
+    stopped, stop_msg = stop_video_server()
+    if not stopped and "not running" in stop_msg:
+        stop_msg = f"{stop_msg} (okay)"
+    elif not stopped:
+        stop_msg = f"stop error: {stop_msg}"
+
+    started, start_msg = start_video_server(port, address)
+    return started, {'stop': stop_msg, 'start': start_msg}
+
 def get_status():
     """Return a dict of {service_name: 'running'|'stopped'}."""
     return {

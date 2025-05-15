@@ -2,7 +2,7 @@ import os
 import threading
 
 from web import create_app
-from orchestrator.manager import start_roscore, start_rosbridge, start_flir
+from orchestrator.manager import start_roscore, start_rosbridge, start_flir, start_video_server
 
 app = create_app()
 
@@ -14,6 +14,7 @@ def start_orchestrator():
         ('roscore', start_roscore),
         ('rosbridge', start_rosbridge),
         ('flir', start_flir),
+        ('video_server', start_video_server)
     ]
     for name, fn in services:
         success, msg = fn()
