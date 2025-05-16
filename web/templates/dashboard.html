@@ -1,90 +1,56 @@
-{% extends "layout.html" %}
+{% extends 'layout.html' %}
+{% block title %}Dashboard · FRC VisionTools{% endblock %}
 
 {% block content %}
-<h1>FRC VisionTools</h1>
-<div id="status" class="status mb-3">Connecting…</div>
+<h1 class="fw-bold text-primary mb-3">FRC VisionTools</h1>
+<p id="status" class="small text-secondary mb-4">Connecting…</p>
 
-<!-- Camera Tabs -->
-<ul id="camera-tabs" class="nav nav-tabs mb-3"></ul>
+<div class="card bg-dark-subtle border-0 shadow-sm">
+  <div class="card-body">
+    <!-- Camera tabs -->
+    <ul id="camera-tabs" class="nav nav-tabs mb-3"></ul>
 
-<!-- Camera Feed -->
-<div id="camera-feed" class="mt-4">
-    <h2>Camera Feed</h2>
-    <img id="camera-img" width="640" height="480" />
+    <!-- Camera feed -->
+    <div id="camera-feed" class="text-center">
+      <img id="camera-img" class="img-fluid rounded shadow-sm"
+           style="max-height:60vh;object-fit:contain;">
+    </div>
+  </div>
 </div>
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+{% block extra_scripts %}
 <script>
-    const ros = new ROSLIB.Ros({ url: 'ws://{{ localIP }}:9090' });
-    const statusEl = document.getElementById('status');
-    const cameraTabsEl = document.getElementById('camera-tabs');
-    const cameraImgEl = document.getElementById('camera-img');
+const ros          = new ROSLIB.Ros({ url: 'ws://{{ localIP }}:9090' });
+const statusEl     = document.getElementById('status');
+const cameraTabsEl = document.getElementById('camera-tabs');
+const cameraImgEl  = document.getElementById('camera-img');
 
-    ros.on('connection', () => {
-        statusEl.textContent = '🟢 Connected to ROS!';
-        statusEl.className = 'status connected mb-3';
+ros.on('connection', () => {
+  statusEl.textContent = '🟢 Connected to ROS!';
+  statusEl.classList.replace('text-secondary', 'text-success');
 
-        ros.getTopics((topics) => {
-            const matchingTopics = topics.topics.filter(topic =>
-                topic.startsWith('/camera/') && topic.endsWith('/image_raw')
-            );
+  ros.getTopics(topics => {
+    const cams = topics.topics.filter(t => t.startsWith('/camera/') && t.endsWith('/image_raw'));
+    cameraTabsEl.innerHTML = cams.length
+      ? cams.map((t,i)=>`<li class="nav-item"><a href="#" class="nav-link ${!i?'active':''}" data-t="${t}">${t.split('/').slice(-2,-1)[0]||t}</a></li>`).join('')
+      : '<li class="nav-item"><span class="nav-link disabled">No cameras available</span></li>';
+    if (cams[0]) startStream(cams[0]);
+  });
+});
 
-            cameraTabsEl.innerHTML = '';
+cameraTabsEl.addEventListener('click', e => {
+  const el = e.target.closest('a[data-t]');
+  if (!el) return;
+  e.preventDefault();
+  cameraTabsEl.querySelectorAll('.nav-link').forEach(a=>a.classList.remove('active'));
+  el.classList.add('active');
+  startStream(el.dataset.t);
+});
 
-            if (matchingTopics.length === 0) {
-                const li = document.createElement('li');
-                li.className = 'nav-item';
-                const link = document.createElement('a');
-                link.className = 'nav-link disabled';
-                link.textContent = 'No cameras available';
-                li.appendChild(link);
-                cameraTabsEl.appendChild(li);
-            } else {
-                matchingTopics.forEach((topic, index) => {
-                    const li = document.createElement('li');
-                    li.className = 'nav-item';
-                    const link = document.createElement('a');
-                    link.className = 'nav-link';
-                    if (index === 0) link.classList.add('active');
-                    link.href = '#';
-                    // Display a friendly name, e.g. camera1
-                    link.textContent = topic.split('/').slice(-2, -1)[0] || topic;
-                    link.onclick = (e) => {
-                        e.preventDefault();
-                        selectTab(topic, link);
-                    };
-                    li.appendChild(link);
-                    cameraTabsEl.appendChild(li);
-                });
+function startStream(topic){ cameraImgEl.src = `http://{{ localIP }}:8080/stream?topic=${topic}`; }
 
-                // Start first camera by default
-                startStream(matchingTopics[0]);
-            }
-        });
-    });
-
-    function selectTab(topicName, linkEl) {
-        // Update active tab styling
-        const links = cameraTabsEl.querySelectorAll('a.nav-link');
-        links.forEach(a => a.classList.remove('active'));
-        linkEl.classList.add('active');
-
-        // Switch stream
-        startStream(topicName);
-    }
-
-    function startStream(topicName) {
-        cameraImgEl.src = `http://{{ localIP }}:8080/stream?topic=${topicName}`;
-    }
-
-    ros.on('error', () => {
-        statusEl.textContent = '🔴 Connection error';
-        statusEl.className = 'status error mb-3';
-    });
-
-    ros.on('close', () => {
-        statusEl.textContent = '⚪ Connection closed';
-        statusEl.className = 'status closed mb-3';
-    });
+ros.on('error', ()=>{ statusEl.textContent='🔴 Connection error'; statusEl.classList.replace('text-secondary','text-danger'); });
+ros.on('close', ()=>{ statusEl.textContent='⚪ Connection closed'; statusEl.classList.replace('text-secondary','text-muted'); });
 </script>
 {% endblock %}

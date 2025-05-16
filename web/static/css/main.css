@@ -1,73 +1,109 @@
 :root {
-    --color-primary: #14B8A6;
-    --color-background: #111827;
-    --color-surface: #1F2937;
-    --color-text-primary: #F3F4F6;
-    --color-text-secondary: #9CA3AF;
+  --bs-body-bg: #f8f9fa;
+  --bs-body-color: #212529;
+  --bs-primary: #3b82f6;
+  --bs-secondary: #6c757d;
+  --bs-border-color: #dee2e6;
 }
 
-body {
-    background-color: var(--color-background);
-    color: var(--color-text-primary);
-    font-family: 'Inter', sans-serif;
-    margin: 0;
+.bg-surface-light {
+  background-color: #ffffff !important;
 }
 
-#sidebar {
-    background-color: var(--color-surface);
-    width: 250px;
+.bg-app-light {
+  background-color: var(--bs-body-bg) !important;
 }
 
-.list-group-item {
-    background-color: transparent;
-    color: var(--color-text-primary);
-    border: none;
-    border-radius: 0.5rem !important;
-    margin-bottom: 0.25rem;
-    transition: background-color 0.2s ease;
+.sidebar-link {
+  color: var(--bs-body-color);
+  padding: 0.5rem 1rem;
+  transition: background-color 0.2s, color 0.2s;
 }
 
-.list-group-item.active {
-    background-color: var(--color-primary);
-    color: var(--color-text-primary);
+.sidebar-link:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--bs-primary);
 }
 
-.list-group-item:hover {
-    background-color: rgba(20, 184, 166, 0.1);
-    color: var(--color-text-primary);
+.sidebar-link.active {
+  background-color: var(--bs-primary);
+  color: #fff;
 }
 
-.settings-icon {
-    transition: transform 0.3s ease;
-    display: inline-block;
+.navbar-brand {
+  color: var(--bs-primary) !important;
 }
 
-.content-wrapper {
-    background-color: var(--color-surface);
-    border-radius: 0.75rem;
-    padding: 2rem;
-    height: calc(100vh - 2rem);
-    overflow-y: auto;
+.btn-outline-dark {
+  border-color: var(--bs-primary);
+  color: var(--bs-primary);
 }
 
-h1 {
-    color: var(--color-primary);
-    font-weight: 600;
+.btn-outline-dark:hover {
+  background-color: var(--bs-primary);
+  color: #fff;
 }
 
-.status {
-    font-weight: 500;
-    color: var(--color-text-secondary);
+.toast {
+  border-color: var(--bs-secondary);
 }
 
-.status.connected {
-    color: #22c55e;
+.toast.show {
+  background-color: #fff;
 }
 
-.status.error {
-    color: #ef4444;
+main::-webkit-scrollbar {
+  width: 8px;
 }
 
-.status.closed {
-    color: var(--color-text-secondary);
+main::-webkit-scrollbar-track {
+  background: #e9ecef;
+}
+
+main::-webkit-scrollbar-thumb {
+  background-color: var(--bs-secondary);
+  border-radius: 4px;
+}
+
+.border-dashed {
+  border: 2px dashed #ced4da;
+}
+
+.overlay-buttons {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.5rem;
+  display: none;
+  gap: 0.25rem;
+}
+
+.card.position-relative:hover .overlay-buttons {
+  display: flex;
+}
+
+.camera-server-controls {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+/* Make all cards pure white and give them a subtle lift on hover */
+.card {
+  background-color: #ffffff !important;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  border-radius: 0.75rem;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.card {
+  margin-bottom: 1rem;
 }

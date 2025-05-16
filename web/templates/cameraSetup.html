@@ -4,44 +4,6 @@
 <h1 class="mb-3">Camera Setup</h1>
 <p class="text-muted">Configure and test your cameras.</p>
 
-<style>
-    .border-dashed {
-        border: 2px dashed #ced4da;
-    }
-
-    .card.position-relative {
-        position: relative;
-    }
-
-    .overlay-buttons {
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        display: none;
-        gap: 0.25rem;
-    }
-
-    .card.position-relative:hover .overlay-buttons {
-        display: flex;
-    }
-
-    #confirmDeleteModal .modal-header .modal-title,
-    #confirmDeleteModal .modal-body {
-        color: #000 !important;
-    }
-
-    .camera-server-controls {
-        position: fixed;
-        bottom: 1rem;
-        right: 1rem;
-        display: flex;
-        align-items: flex-end;
-        gap: 0.5rem;
-        z-index: 1050;
-        padding: 1rem;
-    }
-</style>
-
 <div class="row g-3" id="cameraCards">
     <div class="col-12 col-md-6" id="addCardCol">
         <div id="addCard" class="card h-100 d-flex align-items-center justify-content-center p-5 border-dashed"

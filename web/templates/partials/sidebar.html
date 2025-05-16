@@ -1,47 +1,34 @@
-<nav id="sidebar" class="p-3">
-    <div class="list-group list-group-flush">
-        <a href="/" class="list-group-item {% if active == 'dashboard' %}active{% endif %}">
-            <i class="bi bi-speedometer2 me-2"></i>
-            Dashboard
-        </a>
+<nav id="sidebarNav" class="d-flex flex-column gap-2 p-3 bg-surface-light text-dark">
+  <!-- Brand (visible ≥lg only) -->
+  <a class="navbar-brand mb-3 d-none d-lg-block fw-semibold fs-5 text-center text-dark" href="/">
+    <i class="bi bi-eye-fill me-1"></i>VisionTools
+  </a>
 
-        <a id="settingsToggle"
-            class="list-group-item d-flex justify-content-between align-items-center {% if not active.startswith('camera') %}collapsed{% endif %}"
-            data-bs-toggle="collapse" href="#settingsCollapse" aria-expanded="{{ active.startswith('camera') }}"
-            aria-controls="settingsCollapse">
-            <span><i class="bi bi-gear me-2"></i>Settings</span>
-            <i id="settingsIcon"
-                class="settings-icon {% if active.startswith('camera') %}bi-chevron-down{% else %}bi-chevron-right{% endif %}"></i>
-        </a>
+  <!-- Dashboard -->
+  <a href="/"
+     class="nav-link d-flex align-items-center gap-2 rounded-2 sidebar-link {% if active=='dashboard' %}active{% endif %}">
+    <i class="bi bi-speedometer2 fs-5"></i>
+    <span>Dashboard</span>
+  </a>
 
-        <div class="collapse {% if active.startswith('camera') %}show{% endif %}" id="settingsCollapse">
-            <a href="/camera-setup" class="list-group-item ps-4 {% if active == 'camera-setup' %}active{% endif %}">
-                Camera Setup
-            </a>
-            <a href="/camera-calibration"
-                class="list-group-item ps-4 {% if active == 'camera-calibration' %}active{% endif %}">
-                Camera Calibration
-            </a>
-        </div>
+  <!-- Camera Setup -->
+  <a href="/camera-setup"
+     class="nav-link d-flex align-items-center gap-2 rounded-2 sidebar-link {% if active=='camera-setup' %}active{% endif %}">
+    <i class="bi bi-camera-reels fs-5"></i>
+    <span>Camera Setup</span>
+  </a>
 
-        <a href="/about" class="list-group-item {% if active == 'about' %}active{% endif %}">
-            <i class="bi bi-info-circle me-2"></i>
-            About
-        </a>
-    </div>
+  <!-- Camera Calibration -->
+  <a href="/camera-calibration"
+     class="nav-link d-flex align-items-center gap-2 rounded-2 sidebar-link {% if active=='camera-calibration' %}active{% endif %}">
+    <i class="bi bi-sliders fs-5"></i>
+    <span>Camera Calibration</span>
+  </a>
 
-    <script>
-        const settingsToggle = document.getElementById('settingsToggle');
-        const settingsIcon = document.getElementById('settingsIcon');
-        const collapseEl = document.getElementById('settingsCollapse');
-
-        collapseEl.addEventListener('show.bs.collapse', () => {
-            settingsToggle.classList.remove('collapsed');
-            settingsIcon.classList.replace('bi-chevron-right', 'bi-chevron-down');
-        });
-        collapseEl.addEventListener('hide.bs.collapse', () => {
-            settingsToggle.classList.add('collapsed');
-            settingsIcon.classList.replace('bi-chevron-down', 'bi-chevron-right');
-        });
-    </script>
+  <!-- About -->
+  <a href="/about"
+     class="nav-link d-flex align-items-center gap-2 rounded-2 sidebar-link {% if active=='about' %}active{% endif %}">
+    <i class="bi bi-info-circle fs-5"></i>
+    <span>About</span>
+  </a>
 </nav>
