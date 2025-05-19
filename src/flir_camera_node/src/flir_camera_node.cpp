@@ -210,12 +210,12 @@ try
     };
 
     auto exp_range = getRange("ExposureTime");
-    double e_min = exp_range.first;
-    double e_max = exp_range.second;
+    double e_min = exp_range.first + 0.1;
+    double e_max = exp_range.second - 0.1;
 
     auto gain_range = getRange("Gain");
-    double g_min = gain_range.first;
-    double g_max = gain_range.second;
+    double g_min = gain_range.first + 0.1;
+    double g_max = gain_range.second - 0.1;
 
     auto fps_range = getRange("AcquisitionFrameRate");
     double f_min = fps_range.first;

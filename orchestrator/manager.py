@@ -95,20 +95,31 @@ def restart_flir():
     combined_msg = {'stop': stop_msg, 'start': start_msg}
     return started, combined_msg
 
-def start_video_server(port: int = 8080, address: str = '0.0.0.0'):
+def start_video_server(port: int = 8080,
+                       address: str = '0.0.0.0',
+                       width: int = 640,
+                       height: int = 480,
+                       fps: int = 30,
+                       quality: int = 50,
+                       transport: str = 'compressed'):
     """
-    Launch the ROS web_video_server on the given port and address.
-    By default this runs:
-      rosrun web_video_server web_video_server _port:=8080 _address:=0.0.0.0
+    Launch web_video_server with sensible defaults for UI-friendly streaming:
+      - compressed transport (so we don’t hit the Image vs. CompressedImage MD5 mismatch)
+      - 640×480 @ 30 fps at 50% JPEG quality
     """
     cmd = [
-        'rosrun',
-        'web_video_server',
-        'web_video_server',
+        'rosrun', 'web_video_server', 'web_video_server',
         f'_port:={port}',
         f'_address:={address}',
+        # depending on your version it may be _default_transport
+        f'_default_transport:={transport}',
+        f'_width:={width}',
+        f'_height:={height}',
+        f'_fps:={fps}',
+        f'_quality:={quality}',
     ]
     return _launch('video_server', cmd)
+
 
 def stop_video_server():
     """

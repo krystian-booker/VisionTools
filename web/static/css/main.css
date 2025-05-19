@@ -99,11 +99,6 @@ main::-webkit-scrollbar-thumb {
   border-radius: 0.75rem;
 }
 
-.card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
-}
-
 .card {
   margin-bottom: 1rem;
 }

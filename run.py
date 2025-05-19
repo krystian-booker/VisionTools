@@ -13,8 +13,8 @@ def start_orchestrator():
     services = [
         ('roscore', start_roscore),
         ('rosbridge', start_rosbridge),
-        ('flir', start_flir),
-        ('video_server', start_video_server)
+        ('flir', start_flir)
+        # ('video_server', start_video_server)
     ]
     for name, fn in services:
         success, msg = fn()

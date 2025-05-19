@@ -4,53 +4,25 @@
 {% block content %}
 <h1 class="fw-bold text-primary mb-3">FRC VisionTools</h1>
 <p id="status" class="small text-secondary mb-4">Connecting…</p>
-
-<div class="card bg-dark-subtle border-0 shadow-sm">
-  <div class="card-body">
-    <!-- Camera tabs -->
-    <ul id="camera-tabs" class="nav nav-tabs mb-3"></ul>
-
-    <!-- Camera feed -->
-    <div id="camera-feed" class="text-center">
-      <img id="camera-img" class="img-fluid rounded shadow-sm"
-           style="max-height:60vh;object-fit:contain;">
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-const ros          = new ROSLIB.Ros({ url: 'ws://{{ localIP }}:9090' });
-const statusEl     = document.getElementById('status');
-const cameraTabsEl = document.getElementById('camera-tabs');
-const cameraImgEl  = document.getElementById('camera-img');
+  const ros = new ROSLIB.Ros({ url: 'ws://{{ localIP }}:9090' });
+  const statusEl = document.getElementById('status');
 
-ros.on('connection', () => {
-  statusEl.textContent = '🟢 Connected to ROS!';
-  statusEl.classList.replace('text-secondary', 'text-success');
-
-  ros.getTopics(topics => {
-    const cams = topics.topics.filter(t => t.startsWith('/camera/') && t.endsWith('/image_raw'));
-    cameraTabsEl.innerHTML = cams.length
-      ? cams.map((t,i)=>`<li class="nav-item"><a href="#" class="nav-link ${!i?'active':''}" data-t="${t}">${t.split('/').slice(-2,-1)[0]||t}</a></li>`).join('')
-      : '<li class="nav-item"><span class="nav-link disabled">No cameras available</span></li>';
-    if (cams[0]) startStream(cams[0]);
+  ros.on('connection', () => {
+    statusEl.textContent = '🟢 Connected to ROS!';
+    statusEl.classList.replace('text-secondary', 'text-success');
   });
-});
 
-cameraTabsEl.addEventListener('click', e => {
-  const el = e.target.closest('a[data-t]');
-  if (!el) return;
-  e.preventDefault();
-  cameraTabsEl.querySelectorAll('.nav-link').forEach(a=>a.classList.remove('active'));
-  el.classList.add('active');
-  startStream(el.dataset.t);
-});
-
-function startStream(topic){ cameraImgEl.src = `http://{{ localIP }}:8080/stream?topic=${topic}`; }
-
-ros.on('error', ()=>{ statusEl.textContent='🔴 Connection error'; statusEl.classList.replace('text-secondary','text-danger'); });
-ros.on('close', ()=>{ statusEl.textContent='⚪ Connection closed'; statusEl.classList.replace('text-secondary','text-muted'); });
+  ros.on('error', () => {
+    statusEl.textContent = '🔴 Connection error';
+    statusEl.classList.replace('text-secondary', 'text-danger');
+  });
+  ros.on('close', () => {
+    statusEl.textContent = '⚪ Connection closed';
+    statusEl.classList.replace('text-secondary', 'text-muted');
+  });
 </script>
 {% endblock %}
