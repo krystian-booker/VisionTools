@@ -1,6 +1,0 @@
-[submodule "src/tagslam_root"]
-	path = src/tagslam_root
-	url = https://github.com/berndpfrommer/tagslam_root.git
-[submodule "src/kalibr"]
-	path = src/kalibr
-	url = https://github.com/ethz-asl/kalibr.git
