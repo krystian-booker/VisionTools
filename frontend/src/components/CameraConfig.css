@@ -1,0 +1,63 @@
+.camera-config-container {
+  padding: 10px;
+}
+
+.camera-entry {
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.camera-entry h3 {
+  margin-top: 0;
+}
+
+.camera-entry label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.camera-entry input[type="text"],
+.camera-entry input[type="number"] {
+  width: calc(100% - 12px); /* Account for padding */
+  padding: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
+
+.camera-entry input[type="checkbox"] {
+  margin-bottom: 10px;
+}
+
+.camera-entry button {
+  background-color: #f44336; /* Red */
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.camera-config-actions button {
+  background-color: #4CAF50; /* Green */
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 10px;
+  margin-right: 10px;
+}

@@ -1,0 +1,14 @@
+.App-sidebar ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.App-sidebar li {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #ddd;
+}
+
+.App-sidebar li:hover {
+  background-color: #e0e0e0;
+}
