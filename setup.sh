@@ -43,3 +43,11 @@ sudo apt install -y ros-dev-tools ros-jazzy-desktop
 
 echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
 echo "### Done: '$REPO_NAME' ready! ###"
+
+# extras
+sudo apt install -y ros-jazzy-spinnaker-camera-driver ros-jazzy-flir-camera-description ros-jazzy-flir-camera-msgs ros-jazzy-spinnaker-synchronized-camera-driver
+
+ros2 run spinnaker_camera_driver linux_setup_flir
+
+grep -qxF 'export SPINNAKER_GENTL64_CTI=/opt/ros/${ROS_DISTRO}/lib/spinnaker-gentl/Spinnaker_GenTL.cti' ~/.bashrc \
+  || echo 'export SPINNAKER_GENTL64_CTI=/opt/ros/${ROS_DISTRO}/lib/spinnaker-gentl/Spinnaker_GenTL.cti' >> ~/.bashrc
