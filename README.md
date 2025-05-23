@@ -1,60 +1,70 @@
-# Installation
+# Getting Started with Create React App
 
-Run the setup script:
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-```bash
-bash setup.sh
-```
+## Available Scripts
 
----
+In the project directory, you can run:
 
-## Usage
+### `npm start`
 
-This package uses a single launch file, `flir_camera.launch.py`, to start one or more FLIR camera drivers. All camera settings are defined in a YAML config file, passed in as a launch argument.
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
----
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
 
-### Launching the Camera
+### `npm test`
 
-To launch the camera driver, provide the path to your YAML config file using the `camera_config_file` argument.
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-Example (using the included `single_chameleon_template.yaml`):
+### `npm run build`
 
-```bash
-ros2 launch flir_camera_bringup flir_camera.launch.py camera_config_file:=$(ros2 pkg prefix flir_camera_bringup)/share/flir_camera_bringup/config/single_chameleon_template.yaml
-```
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-You can modify this command to use any of the provided templates or your own config.
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
----
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### Configuration Files
+### `npm run eject`
 
-The `config/` directory includes example YAML files:
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
-- `single_chameleon_template.yaml` — Template for one FLIR Chameleon camera  
-- `dual_chameleon_template.yaml` — Template for two FLIR Chameleon cameras  
-- `single_blackfly_s.yaml` — For one FLIR Blackfly S camera  
-- `dual_blackfly_s_triggered.yaml` — For two Blackfly S cameras with triggering  
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
----
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-### Creating a Custom Config
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
-1. Copy a template file:
+## Learn More
 
-   ```bash
-   cp config/single_blackfly_s.yaml config/my_custom_config.yaml
-   ```
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-2. Edit `my_custom_config.yaml` with your camera’s serial number and desired parameters.
+To learn React, check out the [React documentation](https://reactjs.org/).
 
-3. Launch using your custom config:
+### Code Splitting
 
-   ```bash
-   ros2 launch flir_camera_bringup flir_camera.launch.py camera_config_file:=$(find-pkg-share flir_camera_bringup)/config/my_custom_config.yaml
-   ```
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
----
+### Analyzing the Bundle Size
 
-Each camera must have an entry under `cameras:` in the YAML file, with fields like `name`, `serial_number`, `camera_type`, and `ros_parameters`.
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)

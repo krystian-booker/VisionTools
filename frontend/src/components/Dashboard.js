@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import './Dashboard.css'; // Import the new CSS file
 
 function Dashboard() {
   const [rosStatus, setRosStatus] = useState(null); // null, true, or false
@@ -25,13 +26,13 @@ function Dashboard() {
   }, [fetchStatus]);
 
   return (
-    <div>
+    <div className="dashboard-container"> {/* Added container class */}
       <h2>Dashboard</h2>
       <button onClick={fetchStatus}>Refresh Status</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {rosStatus === null && <p>Loading status...</p>}
-      {rosStatus === true && <p style={{ color: 'green' }}>Connected to ROS</p>}
-      {rosStatus === false && !error && <p style={{ color: 'orange' }}>Not connected to ROS</p>}
+      {error && <p className="error-message">{error}</p>} {/* Added error class */}
+      {rosStatus === null && <p className="status-loading">Loading status...</p>} {/* Added loading class */}
+      {rosStatus === true && <p className="status-connected">Connected to ROS</p>} {/* Added connected class */}
+      {rosStatus === false && !error && <p className="status-not-connected">Not connected to ROS</p>} {/* Added not-connected class */}
     </div>
   );
 }
