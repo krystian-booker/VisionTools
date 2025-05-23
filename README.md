@@ -10,13 +10,15 @@ This package uses a unified launch file, `flir_camera.launch.py`, to start the F
 
 To launch the camera driver, you will need to specify the path to your YAML configuration file using the `camera_config_file` argument.
 
+Below is an example command that launches the driver using the `single_blackfly_s.yaml` configuration file. You can adapt this command to use other provided examples or your own custom configuration file.
+
 Example command:
 
 ```bash
-ros2 launch flir_camera_bringup flir_camera.launch.py camera_config_file:=$(find-pkg-share flir_camera_bringup)/config/your_camera_config.yaml
+ros2 launch flir_camera_bringup flir_camera.launch.py camera_config_file:=$(find-pkg-share flir_camera_bringup)/config/single_blackfly_s.yaml
 ```
 
-Replace `your_camera_config.yaml` with the actual name of your configuration file.
+See the "Configuration Files" section below for more details on available examples and how to customize them.
 
 ### Configuration Files
 

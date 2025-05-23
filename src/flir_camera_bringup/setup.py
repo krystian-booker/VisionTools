@@ -23,18 +23,14 @@ setup(
         (f'share/{package_name}', ['package.xml']),
         # install *all* your launch files
         (os.path.join('share', package_name, 'launch'),
-            glob('launch/*.py')),
+            glob('launch/*launch.[pxy][yma]*')),
         # (optional) if you have config/ presets:
-        # (os.path.join('share', package_name, 'config'),
-        #    glob('config/*.yaml')),
+        (os.path.join('share', package_name, 'config'),
+            glob('config/*.yaml')),
     ],
     entry_points={
         'console_scripts': [
             # none for now
-        ],
-        'launch': [
-            # <cmd_name> = <python_module>:<factory_fn>
-            'driver_node = flir_camera_bringup.launch.driver_node:generate_launch_description',
         ],
     },
 )
