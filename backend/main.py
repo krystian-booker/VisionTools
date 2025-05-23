@@ -132,3 +132,4 @@ async def update_config(configs: List[Camera], request: Request):
     camera_configs = configs
     save_config_to_yaml()
     return {"message": "Configuration saved successfully"}
+

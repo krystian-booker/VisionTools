@@ -77,3 +77,27 @@ source "${SCRIPT_DIR}/install/setup.bash"
 set -u
 
 echo "### Done: '$REPO_NAME' ready! ###"
+
+# Download and install nvm:
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+
+# in lieu of restarting the shell
+\. "$HOME/.nvm/nvm.sh"
+
+# Download and install Node.js:
+nvm install 22
+
+# Verify the Node.js version:
+node -v # Should print "v22.16.0".
+nvm current # Should print "v22.16.0".
+
+# Verify npm version:
+npm -v # Should print "10.9.2".
+
+sudo apt install -y python3-pip
+sudo apt install python3.12-venv
+
+# Inside backend directory
+# python3 -m venv .venv
+# source .venv/bin/activate
+# pip install -r requirements.txt
