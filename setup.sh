@@ -51,3 +51,9 @@ ros2 run spinnaker_camera_driver linux_setup_flir
 
 grep -qxF 'export SPINNAKER_GENTL64_CTI=/opt/ros/${ROS_DISTRO}/lib/spinnaker-gentl/Spinnaker_GenTL.cti' ~/.bashrc \
   || echo 'export SPINNAKER_GENTL64_CTI=/opt/ros/${ROS_DISTRO}/lib/spinnaker-gentl/Spinnaker_GenTL.cti' >> ~/.bashrc
+
+
+
+#notes
+#ros2 launch spinnaker_camera_driver driver_node.launch.py   camera_type:=chameleon   serial:="'17301966'"
+#ros2 launch flir_camera_bringup driver_node.launch.py camera_type:=chameleon   serial:="'17301966'"

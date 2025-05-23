@@ -2,15 +2,19 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>flir_camera_bringup</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="team2852@todo.todo">team2852</maintainer>
-  <license>TODO: License declaration</license>
+  <version>1.0.0</version>
+  <description>FLIR Camera launcher for VisionTools</description>
+  <maintainer email="krystian@2852.ca">team2852</maintainer>
+  <license>Apache</license>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
+  
+  <depend>flir_camera_driver</depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
