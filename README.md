@@ -10,12 +10,12 @@ This package uses a unified launch file, `flir_camera.launch.py`, to start the F
 
 To launch the camera driver, you will need to specify the path to your YAML configuration file using the `camera_config_file` argument.
 
-Below is an example command that launches the driver using the `single_blackfly_s.yaml` configuration file. You can adapt this command to use other provided examples or your own custom configuration file.
+Below is an example command that launches the driver using the `single_chameleon_template.yaml` configuration file. This command is confirmed to work. You can adapt this command to use other provided examples or your own custom configuration file.
 
 Example command:
 
 ```bash
-ros2 launch flir_camera_bringup flir_camera.launch.py camera_config_file:=$(find-pkg-share flir_camera_bringup)/config/single_blackfly_s.yaml
+ros2 launch flir_camera_bringup flir_camera.launch.py camera_config_file:=$(ros2 pkg prefix flir_camera_bringup)/share/flir_camera_bringup/config/single_chameleon_template.yaml
 ```
 
 See the "Configuration Files" section below for more details on available examples and how to customize them.
@@ -24,9 +24,10 @@ See the "Configuration Files" section below for more details on available exampl
 
 The `config/` directory within this package contains example YAML configuration files:
 
-*   `single_blackfly_s.yaml`: For a single FLIR Blackfly S camera.
 *   `dual_blackfly_s_triggered.yaml`: For two FLIR Blackfly S cameras with triggering enabled.
 *   `dual_chameleon_template.yaml`: A template for two FLIR Chameleon cameras.
+*   `single_blackfly_s.yaml`: For a single FLIR Blackfly S camera.
+*   `single_chameleon_template.yaml`: A template for a single FLIR Chameleon camera.
 
 **To use these examples:**
 

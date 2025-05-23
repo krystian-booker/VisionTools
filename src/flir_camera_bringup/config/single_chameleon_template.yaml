@@ -1,8 +1,8 @@
-# YAML configuration template for two Chameleon cameras
+# YAML configuration template for a single Chameleon camera
 # Parameters are based on the 'chameleon' entry from the
 # example_parameters in the original driver_node.launch.py.
 cameras:
-  - name: "chameleon_cam_0"
+  - name: "chameleon_cam" # Default name for a single camera setup
     serial_number: "CHAMELEON_SERIAL_0" # Replace with actual serial number
     camera_type: "chameleon"
     # parameter_file: "" # Optional: uncomment and path to specific Spinnaker SDK chameleon.yaml if not using default
