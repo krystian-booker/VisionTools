@@ -1,0 +1,63 @@
+# YAML configuration template for two Chameleon cameras
+# Parameters are based on the 'chameleon' entry from the
+# example_parameters in the original driver_node.launch.py.
+cameras:
+  - name: "chameleon_cam_0"
+    serial_number: "CHAMELEON_SERIAL_0" # Replace with actual serial number
+    camera_type: "chameleon"
+    # parameter_file: "" # Optional: uncomment and path to specific Spinnaker SDK chameleon.yaml if not using default
+    ros_parameters:
+      debug: False
+      compute_brightness: False
+      dump_node_map: False
+      gain_auto: 'Continuous'
+      exposure_auto: 'Continuous'
+      offset_x: 0
+      offset_y: 0
+      image_width: 2048
+      image_height: 1536
+      pixel_format: 'Mono8'  # Options: 'BayerRG8', 'RGB8', 'Mono8'
+      # Note: 'frame_rate_continous' below was likely a typo in the original example.
+      # Check spinnaker_camera_driver documentation or its chameleon.yaml for the correct parameter
+      # (e.g., 'frame_rate_enable' or 'frame_rate_continuous').
+      frame_rate_continous: True
+      frame_rate: 100.0
+      trigger_mode: 'Off' # Set to 'On' and configure trigger source if using hardware triggers
+      # trigger_source: 'LineX' # Example if trigger_mode is 'On'
+      chunk_mode_active: True
+      chunk_selector_frame_id: 'FrameID'
+      chunk_enable_frame_id: True
+      chunk_selector_exposure_time: 'ExposureTime'
+      chunk_enable_exposure_time: True
+      chunk_selector_gain: 'Gain'
+      chunk_enable_gain: True
+      chunk_selector_timestamp: 'Timestamp'
+      chunk_enable_timestamp: True
+
+  - name: "chameleon_cam_1"
+    serial_number: "CHAMELEON_SERIAL_1" # Replace with actual serial number
+    camera_type: "chameleon"
+    # parameter_file: "" # Optional
+    ros_parameters:
+      debug: False
+      compute_brightness: False
+      dump_node_map: False
+      gain_auto: 'Continuous'
+      exposure_auto: 'Continuous'
+      offset_x: 0
+      offset_y: 0
+      image_width: 2048
+      image_height: 1536
+      pixel_format: 'Mono8'
+      frame_rate_continous: True # See note on this parameter for cam_0
+      frame_rate: 100.0
+      trigger_mode: 'Off'
+      chunk_mode_active: True
+      chunk_selector_frame_id: 'FrameID'
+      chunk_enable_frame_id: True
+      chunk_selector_exposure_time: 'ExposureTime'
+      chunk_enable_exposure_time: True
+      chunk_selector_gain: 'Gain'
+      chunk_enable_gain: True
+      chunk_selector_timestamp: 'Timestamp'
+      chunk_enable_timestamp: True
