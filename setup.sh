@@ -19,7 +19,6 @@ export LANG="$LOCALE"
 locale
 
 echo "### System update & essentials ###"
-# upgrade & essentials in one go
 sudo apt upgrade -y
 sudo apt install -y git curl software-properties-common
 sudo add-apt-repository -y universe
@@ -42,18 +41,39 @@ sudo apt update -y
 sudo apt install -y ros-dev-tools ros-jazzy-desktop
 
 echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
-echo "### Done: '$REPO_NAME' ready! ###"
 
-# extras
-sudo apt install -y ros-jazzy-spinnaker-camera-driver ros-jazzy-flir-camera-description ros-jazzy-flir-camera-msgs ros-jazzy-spinnaker-synchronized-camera-driver
+echo "### Extras for FLIR/spinnaker ###"
+sudo apt install -y \
+  ros-jazzy-spinnaker-camera-driver \
+  ros-jazzy-flir-camera-description \
+  ros-jazzy-flir-camera-msgs \
+  ros-jazzy-spinnaker-synchronized-camera-driver
 
+# Build entire workspace
+echo "### Building ROS 2 workspace ###"
+colcon build --symlink-install
+
+echo "### FLIR camera driver setup ###"
 ros2 run spinnaker_camera_driver linux_setup_flir
 
 grep -qxF 'export SPINNAKER_GENTL64_CTI=/opt/ros/${ROS_DISTRO}/lib/spinnaker-gentl/Spinnaker_GenTL.cti' ~/.bashrc \
   || echo 'export SPINNAKER_GENTL64_CTI=/opt/ros/${ROS_DISTRO}/lib/spinnaker-gentl/Spinnaker_GenTL.cti' >> ~/.bashrc
 
+echo "### Self-locating workspace setup ###"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
+RC_LINE="source \"${SCRIPT_DIR}/install/setup.bash\""
 
+# If ~/.bashrc doesn’t already contain it, append it:
+if ! grep -qxF "$RC_LINE" "$HOME/.bashrc"; then
+  echo "$RC_LINE" >> "$HOME/.bashrc"
+  echo "→ Added ROS overlay source to ~/.bashrc"
+else
+  echo "→ ~/.bashrc already sources your workspace"
+fi
 
-#notes
-#ros2 launch spinnaker_camera_driver driver_node.launch.py   camera_type:=chameleon   serial:="'17301966'"
-#ros2 launch flir_camera_bringup driver_node.launch.py camera_type:=chameleon   serial:="'17301966'"
+# temporarily turn off -u so an unset COLCON_TRACE won't abort
+set +u
+source "${SCRIPT_DIR}/install/setup.bash"
+set -u
+
+echo "### Done: '$REPO_NAME' ready! ###"
