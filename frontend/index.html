@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train YOLO Model</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        label { display: block; margin-top: 10px; color: #555; }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #logOutput {
+            background-color: #222;
+            color: #eee;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            height: 400px;
+            overflow-y: scroll;
+            white-space: pre-wrap; /* Allows wrapping and respects newlines */
+            font-family: monospace;
+        }
+        .status-section { margin-top: 20px; padding:10px; border: 1px solid #eee; border-radius: 4px;}
+        .status-section h3 { margin-top: 0; }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Train YOLO Model</h1>
+
+        <form id="trainForm">
+            <div>
+                <label for="data_yaml_path">Path to data.yaml:</label>
+                <input type="text" id="data_yaml_path" name="data_yaml_path" required>
+            </div>
+
+            <div>
+                <label for="model_type">YOLOv5 Model Type:</label>
+                <select id="model_type" name="model_type"></select>
+            </div>
+
+            <div>
+                <label for="epochs">Epochs:</label>
+                <input type="number" id="epochs" name="epochs">
+            </div>
+
+            <div>
+                <label for="imgsz">Image Size (imgsz):</label>
+                <input type="number" id="imgsz" name="imgsz">
+            </div>
+
+            <div>
+                <label for="device">Training Device:</label>
+                <select id="device" name="device">
+                    <option value="cpu">CPU</option>
+                    <option value="0">GPU 0</option>
+                    <!-- Add more GPU options if needed -->
+                </select>
+            </div>
+
+            <div>
+                <label for="conversion_target">Conversion Target:</label>
+                <select id="conversion_target" name="conversion_target"></select>
+            </div>
+            
+            <div>
+                <label for="run_name">Run Name (Optional):</label>
+                <input type="text" id="run_name" name="run_name" placeholder="e.g., my_experiment_run">
+            </div>
+
+            <button type="submit" id="startTrainButton">Start Training</button>
+        </form>
+
+        <div class="status-section">
+            <h3>Current Job Status</h3>
+            <p id="jobStatus">Idle</p>
+            <p><strong>Best Model Path:</strong> <span id="bestModelPath">-</span></p>
+            <p><strong>Converted Model Path:</strong> <span id="convertedModelPath">-</span></p>
+        </div>
+
+        <h3>Console Output</h3>
+        <div id="logOutput">
+            Welcome! Logs will appear here...
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

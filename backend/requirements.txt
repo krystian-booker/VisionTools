@@ -1,5 +1,2 @@
-setuptools
-fastapi
-uvicorn
-rclpy
-pyyaml
+Flask>=2.0
+Flask-CORS>=3.0
