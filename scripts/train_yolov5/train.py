@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument(
         "--device",
         type=str,
-        default="0",
+        default="cpu",
         help="CUDA device (e.g. '0' or 'cpu')"
     )
     return parser.parse_args()

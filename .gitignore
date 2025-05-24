@@ -16,3 +16,5 @@ install
 log
 .venv
 camera_install.sh
+scripts/train_yolov5/runs
+*.pt
