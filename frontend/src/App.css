@@ -1,0 +1,17 @@
+.App {
+  display: flex;
+  min-height: 100vh; /* Ensure app takes full viewport height */
+}
+
+/* .App-sidebar is handled by Sidebar.css, but if there are overrides here, update them */
+
+.App-content {
+  flex-grow: 1;
+  padding: 25px 35px; /* More padding */
+  background-color: #ffffff; /* White content area */
+  /* box-shadow: -2px 0 5px rgba(0,0,0,0.05); Optional: subtle shadow if sidebar is distinct */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #2c3e50; /* Slightly softer black for headings */
+}
