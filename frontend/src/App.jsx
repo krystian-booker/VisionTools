@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import './App.css';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import CameraConfig from './components/CameraConfig';
+import Box from '@mui/material/Box';
+import Sidebar from './components/Sidebar.jsx';
+import Dashboard from './screens/Dashboard.jsx';
+import CameraConfig from './screens/CameraConfig.jsx';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' or 'config'
@@ -12,13 +12,13 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <Box sx={{ display: 'flex' }}>
       <Sidebar onViewChange={handleViewChange} />
-      <div className="App-content">
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         {currentView === 'dashboard' && <Dashboard />}
         {currentView === 'config' && <CameraConfig />}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
