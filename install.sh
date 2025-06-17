@@ -35,6 +35,9 @@ sudo apt-get install -y ros-kilted-image-proc
 HOME_DIR="$HOME"
 BASHRC_PATH="$HOME_DIR/.bashrc"
 
+SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+ROS_WS="$SCRIPT_DIR"
+
 if ! grep -q "/opt/ros/kilted/setup.bash" "$BASHRC_PATH"; then
     echo "source /opt/ros/kilted/setup.bash" >> "$BASHRC_PATH"
 fi
@@ -42,18 +45,13 @@ fi
 sudo rosdep init   || true
 rosdep update
 
-echo "--- Creating ROS 2 Workspace at $HOME_DIR/ros2_ws ---"
-ROS_WS="$HOME_DIR/ros2_ws"
-mkdir -p "$ROS_WS/src"
-cd "$ROS_WS/src"
+echo "--- Setting up ROS 2 Workspace at $ROS_WS ---"
 
-echo "--- Cloning ROS 2 Nodes…"
-git clone -b humble-devel https://github.com/ros-drivers/flir_camera_driver.git
-git clone https://github.com/christianrauch/apriltag_ros.git
-git clone https://github.com/christianrauch/apriltag_msgs.git
+# Source directory 'src' is assumed to be part of the repo.
+# Cloning is no longer done by this script. Dependencies are expected to be in 'src'.
 
 echo "--- Installing dependencies with rosdep…"
-cd "$ROS_WS"
+cd "$ROS_WS" # Make sure we are in the repo root for rosdep and colcon
 source /opt/ros/kilted/setup.bash
 rosdep install --from-paths src --ignore-src -r -y
 
@@ -76,45 +74,10 @@ echo "--- Creating configuration directory at $HOME_DIR/ros2_config ---"
 CONFIG_DIR="$HOME_DIR/ros2_config"
 mkdir -p "$CONFIG_DIR"
 
-echo "--- Creating placeholder config files ---"
-
-# NEW: Identity configuration file. This is the MOST IMPORTANT one to edit.
-cat <<EOT > "$CONFIG_DIR/robot_identity.yaml"
-# FRC Vision System Identity
-#
-# Edit these values for EACH Orange Pi to give it a unique identity.
-# This ensures topics and frames do not conflict on the ROS network.
-vision_system:
-  ros__parameters:
-    # A unique name for this camera setup (e.g., 'cam1', 'cam2', 'front_center_cam').
-    # This will be used as the ROS namespace. No slashes.
-    camera_name: "cam1"
-
-    # The tf2 frame_id for this camera. This MUST MATCH the link name in your robot's URDF file.
-    camera_frame_id: "camera_1_link"
-EOT
-
-# Spinnaker camera driver config - this is now mostly for tuning.
-cat <<EOT > "$CONFIG_DIR/camera_tuning.yaml"
-spinnaker_camera_node:
-  ros__parameters:
-    serial_number: "0" # <-- CHANGE THIS to your camera's serial number as a string
-    acquisition_frame_rate_enable: true
-    acquisition_frame_rate: 30.0
-    exposure_auto: "Off"
-    exposure_time: 2000
-    gain_auto: "Off"
-    gain: 10.0
-    trigger_mode: "Off"
-EOT
-
-# AprilTag node config
-cat <<EOT > "$CONFIG_DIR/apriltag_tuning.yaml"
-apriltag_node:
-  ros__parameters:
-    family: "tag36h11"
-    publish_tag_detections_image: true
-EOT
+echo "--- Copying configuration files ---"
+cp "$SCRIPT_DIR/examples/robot_identity.yaml" "$CONFIG_DIR/robot_identity.yaml"
+cp "$SCRIPT_DIR/examples/camera_tuning.yaml" "$CONFIG_DIR/camera_tuning.yaml"
+cp "$SCRIPT_DIR/examples/apriltag_tuning.yaml" "$CONFIG_DIR/apriltag_tuning.yaml"
 
 # Set correct ownership for the created directories
 sudo chown -R "$EFFECTIVE_USER:$EFFECTIVE_USER" "$HOME_DIR"
@@ -125,111 +88,25 @@ echo "--- Creating ROS 2 Launch file for startup ---"
 LAUNCH_PKG_DIR="$ROS_WS/src/robot_launch"
 mkdir -p "$LAUNCH_PKG_DIR/launch"
 
-# A minimal package.xml is needed for `get_package_share_directory`
-cat <<EOT > "$LAUNCH_PKG_DIR/package.xml"
-<?xml version="1.0"?>
-<package format="3">
-  <name>robot_launch</name>
-  <version>1.0.0</version>
-  <description>Launch files for FRC vision system</description>
-  <maintainer email="user@example.com">${EFFECTIVE_USER}</maintainer>
-  <license>Apache-2.0</license>
-  <buildtool_depend>ament_cmake</buildtool_depend>
-  <exec_depend>ros2launch</exec_depend>
-</package>
-EOT
+echo "--- Copying vision_system.launch.py for robot_launch ---"
+cp "$SCRIPT_DIR/src/robot_launch/launch/vision_system.launch.py" "$LAUNCH_PKG_DIR/launch/vision_system.launch.py"
 
-# A basic CMakeLists.txt
-cat <<EOT > "$LAUNCH_PKG_DIR/CMakeLists.txt"
-cmake_minimum_required(VERSION 3.8)
-project(robot_launch)
-find_package(ament_cmake REQUIRED)
-install(
-  DIRECTORY launch
-  DESTINATION share/\${PROJECT_NAME}
-)
-ament_package()
-EOT
+echo "--- Copying package.xml for robot_launch ---"
+cp "$SCRIPT_DIR/src/robot_launch/package.xml" "$LAUNCH_PKG_DIR/package.xml"
+
+echo "--- Copying CMakeLists.txt for robot_launch ---"
+cp "$SCRIPT_DIR/src/robot_launch/CMakeLists.txt" "$LAUNCH_PKG_DIR/CMakeLists.txt"
+
+# package.xml is now expected to be in the repository at src/robot_launch/package.xml
+# and will be copied into $LAUNCH_PKG_DIR by a new command.
 
 # Rebuild the workspace to find the new package
 cd "$ROS_WS"
 colcon build --symlink-install
 
-
-# The actual Python launch file - now much more intelligent
-cat <<EOT > "$LAUNCH_PKG_DIR/launch/vision_system.launch.py"
-import os
-import yaml
-from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
-from launch_ros.actions import Node, PushRosNamespace
-from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.substitutions import LaunchConfiguration
-
-def generate_launch_description():
-    # Define paths to config files
-    home_dir = os.path.expanduser('~')
-    identity_config_path = os.path.join(home_dir, 'ros2_config', 'robot_identity.yaml')
-    camera_tuning_config = os.path.join(home_dir, 'ros2_config', 'camera_tuning.yaml')
-    apriltag_tuning_config = os.path.join(home_dir, 'ros2_config', 'apriltag_tuning.yaml')
-
-    # Load the identity config to get the camera name and frame_id
-    with open(identity_config_path, 'r') as f:
-        identity_config = yaml.safe_load(f)
-        camera_name = identity_config['vision_system']['ros__parameters']['camera_name']
-        camera_frame_id = identity_config['vision_system']['ros__parameters']['camera_frame_id']
-
-    # Create a group of actions that will all be pushed into the same namespace
-    namespaced_group = GroupAction(
-        actions=[
-            # Push all nodes into a namespace defined by camera_name
-            PushRosNamespace(camera_name),
-
-            # 1. Camera Driver Node
-            Node(
-                package='spinnaker_camera_driver',
-                executable='camera_driver_node',
-                name='spinnaker_camera_node',
-                parameters=[
-                    camera_tuning_config,
-                    {'frame_id': camera_frame_id} # Set the frame_id directly
-                ],
-                output='screen'
-            ),
-
-            # 2. Image Processing Node for Undistortion
-            # Note: topic remappings are relative to the namespace
-            Node(
-                package='image_proc',
-                executable='image_proc',
-                name='image_proc_node',
-                remappings=[
-                    ('image', 'spinnaker_camera_node/image_raw'),
-                    ('image_raw', 'image_proc_node/image_raw_out'), # Avoid topic collision
-                    ('image_rect', 'image_rect'), # Output topic
-                ],
-                output='screen'
-            ),
-            
-            # 3. AprilTag Detection Node
-            Node(
-                package='apriltag_ros',
-                executable='apriltag_node',
-                name='apriltag_node',
-                parameters=[apriltag_tuning_config],
-                output='screen',
-                remappings=[
-                    # Subscribe to the *rectified* image from image_proc
-                    ('image_rect', 'image_rect'),
-                    ('camera_info', 'spinnaker_camera_node/camera_info'),
-                ]
-            ),
-        ]
-    )
-
-    return LaunchDescription([namespaced_group])
-EOT
-
+# The Python launch file vision_system.launch.py is now expected to be
+# in the repository at src/robot_launch/launch/vision_system.launch.py
+# and will be copied into $LAUNCH_PKG_DIR/launch by a new command.
 
 # --- 5. Create and Enable systemd Service ---
 

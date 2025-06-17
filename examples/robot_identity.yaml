@@ -1,0 +1,12 @@
+# FRC Vision System Identity
+#
+# Edit these values for EACH Orange Pi to give it a unique identity.
+# This ensures topics and frames do not conflict on the ROS network.
+vision_system:
+  ros__parameters:
+    # A unique name for this camera setup (e.g., 'cam1', 'cam2', 'front_center_cam').
+    # This will be used as the ROS namespace. No slashes.
+    camera_name: "cam1"
+
+    # The tf2 frame_id for this camera. This MUST MATCH the link name in your robot's URDF file.
+    camera_frame_id: "camera_1_link"

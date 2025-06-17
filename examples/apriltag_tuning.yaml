@@ -1,0 +1,4 @@
+apriltag_node:
+  ros__parameters:
+    family: "tag36h11"
+    publish_tag_detections_image: true

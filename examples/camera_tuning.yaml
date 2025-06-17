@@ -1,0 +1,10 @@
+spinnaker_camera_node:
+  ros__parameters:
+    serial_number: "0" # <-- CHANGE THIS to your camera's serial number as a string
+    acquisition_frame_rate_enable: true
+    acquisition_frame_rate: 30.0
+    exposure_auto: "Off"
+    exposure_time: 2000
+    gain_auto: "Off"
+    gain: 10.0
+    trigger_mode: "Off"
