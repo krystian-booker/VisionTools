@@ -1,5 +1,0 @@
-setuptools
-fastapi
-uvicorn
-rclpy
-pyyaml
