@@ -11,8 +11,11 @@ install(
 
 # Install the config directory from the repo root
 # This makes the .yaml files available to the launch file
+# via ament_index_python.packages.get_package_share_directory.
+# CMAKE_SOURCE_DIR refers to the top-level directory of the project,
+# which in a colcon workspace is the root of your repository.
 install(
-  DIRECTORY ../../config/
+  DIRECTORY ${CMAKE_SOURCE_DIR}/config/
   DESTINATION share/${PROJECT_NAME}/config
 )
 

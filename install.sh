@@ -23,7 +23,7 @@ sudo apt -y upgrade
 sudo apt install -y ros-kilted-desktop ros-dev-tools ros-kilted-image-proc
 sudo apt-get install -y git wget curl build-essential python3-pip python3-rosdep
 
-# --- 2. ROS 2 Workspace Setup ---
+# --- 2. Workspace and Environment Setup ---
 HOME_DIR="$HOME"
 BASHRC_PATH="$HOME_DIR/.bashrc"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -38,6 +38,19 @@ echo "--- Initializing rosdep ---"
 sudo rosdep init || true
 rosdep update
 
+# --- 3. Setup Local Configuration Files (BEFORE BUILD) ---
+echo "--- Creating local configuration directory at $ROS_WS/config ---"
+CONFIG_DIR="$ROS_WS/config"
+EXAMPLES_DIR="$ROS_WS/examples"
+mkdir -p "$CONFIG_DIR"
+
+echo "--- Copying example configuration files to local configs ---"
+# This creates the user-editable config files from the version-controlled examples.
+cp "$EXAMPLES_DIR/robot_identity.yaml" "$CONFIG_DIR/robot_identity.yaml"
+cp "$EXAMPLES_DIR/camera_tuning.yaml" "$CONFIG_DIR/camera_tuning.yaml"
+cp "$EXAMPLES_DIR/apriltag_tuning.yaml" "$CONFIG_DIR/apriltag_tuning.yaml"
+
+# --- 4. Build the ROS 2 Workspace ---
 echo "--- Setting up ROS 2 Workspace at $ROS_WS ---"
 cd "$ROS_WS" # Make sure we are in the repo root
 source /opt/ros/kilted/setup.bash
@@ -46,6 +59,7 @@ echo "--- Installing ROS dependencies with rosdep ---"
 rosdep install --from-paths src --ignore-src -r -y
 
 echo "--- Building Workspace with colcon ---"
+# This will now succeed because the config/ directory exists and CMake can find it.
 colcon build --symlink-install
 
 echo "--- Sourcing local workspace in .bashrc ---"
@@ -53,19 +67,7 @@ if ! grep -q "$ROS_WS/install/setup.bash" "$BASHRC_PATH"; then
     echo "source $ROS_WS/install/setup.bash" >> "$BASHRC_PATH"
 fi
 
-# --- 3. Setup Local Configuration Files ---
-echo "--- Creating local configuration directory at $ROS_WS/config ---"
-CONFIG_DIR="$ROS_WS/config"
-EXAMPLES_DIR="$ROS_WS/examples"
-mkdir -p "$CONFIG_DIR"
-
-echo "--- Copying example configuration files to local configs ---"
-cp "$EXAMPLES_DIR/robot_identity.yaml" "$CONFIG_DIR/robot_identity.yaml"
-cp "$EXAMPLES_DIR/camera_tuning.yaml" "$CONFIG_DIR/camera_tuning.yaml"
-cp "$EXAMPLES_DIR/apriltag_tuning.yaml" "$CONFIG_DIR/apriltag_tuning.yaml"
-
-
-# --- 4. Create and Enable systemd Service ---
+# --- 5. Create and Enable systemd Service ---
 # The EFFECTIVE_USER variable ensures the service runs as the user who ran the script, not as root
 EFFECTIVE_USER=${SUDO_USER:-$USER}
 
@@ -112,14 +114,11 @@ echo "   You MUST edit these files to match your robot's hardware."
 echo "   - In 'robot_identity.yaml', set a unique 'camera_name'."
 echo "   - In 'camera_tuning.yaml', set the correct 'serial_number'."
 echo ""
-echo "3. VERIFY LAUNCH FILE (One-time check):"
-echo "   Your launch file 'vision_system.launch.py' must know where to find these configs."
-echo "   Make sure it is looking for them in the '$CONFIG_DIR/' directory."
-echo ""
-echo "4. REBOOT:"
+echo "3. REBOOT:"
 echo "   A reboot is required for all changes to take effect."
 echo "   Run 'sudo reboot'"
 echo ""
 echo "After rebooting, the ROS 2 nodes will start automatically."
 echo "Check status with: 'systemctl status ros2-vision.service'"
 echo ""
+```
