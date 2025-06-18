@@ -17,7 +17,7 @@ sudo apt install -y /tmp/ros2-apt-source.deb
 sudo apt update && sudo apt install -y ros-dev-tools
 
 sudo apt update
-sudo apt upgrade
+sudo apt -y upgrade
 
 sudo apt install -y ros-kilted-desktop
 
