@@ -3,21 +3,38 @@ import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node, PushRosNamespace
-from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import GroupAction
 
 def generate_launch_description():
-    # Define paths to config files
-    home_dir = os.path.expanduser('~')
-    identity_config_path = os.path.join(home_dir, 'ros2_config', 'robot_identity.yaml')
-    camera_tuning_config = os.path.join(home_dir, 'ros2_config', 'camera_tuning.yaml')
-    apriltag_tuning_config = os.path.join(home_dir, 'ros2_config', 'apriltag_tuning.yaml')
+    # --- Corrected: Find config files within the package's share directory ---
+    # This is the standard ROS 2 way to find package data files.
+    # It requires the 'config' directory to be installed with the package.
+    # (See notes on CMakeLists.txt modification below)
+    robot_launch_share_dir = get_package_share_directory('robot_launch')
+    
+    identity_config_path = os.path.join(robot_launch_share_dir, 'config', 'robot_identity.yaml')
+    camera_tuning_config = os.path.join(robot_launch_share_dir, 'config', 'camera_tuning.yaml')
+    apriltag_tuning_config = os.path.join(robot_launch_share_dir, 'config', 'apriltag_tuning.yaml')
 
-    # Load the identity config to get the camera name and frame_id
-    with open(identity_config_path, 'r') as f:
-        identity_config = yaml.safe_load(f)
-        camera_name = identity_config['vision_system']['ros__parameters']['camera_name']
-        camera_frame_id = identity_config['vision_system']['ros__parameters']['camera_frame_id']
+    # Load the identity config to get the camera name for the namespace
+    # This is a valid use case for reading a file at launch-time, as the namespace
+    # itself depends on the content.
+    try:
+        with open(identity_config_path, 'r') as f:
+            identity_config = yaml.safe_load(f)
+            # Safely get nested parameters
+            ros_params = identity_config.get('vision_system', {}).get('ros__parameters', {})
+            camera_name = ros_params.get('camera_name')
+            camera_frame_id = ros_params.get('camera_frame_id')
+
+            if not camera_name or not camera_frame_id:
+                raise ValueError("'camera_name' or 'camera_frame_id' not found in robot_identity.yaml")
+
+    except (IOError, yaml.YAMLError, ValueError) as e:
+        # Provide a clear error message if the config is missing or malformed
+        print(f"Error loading or parsing '{identity_config_path}': {e}")
+        # You might want to return an empty LaunchDescription or exit
+        return LaunchDescription([])
 
     # Create a group of actions that will all be pushed into the same namespace
     namespaced_group = GroupAction(
