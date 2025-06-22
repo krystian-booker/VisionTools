@@ -69,56 +69,55 @@ fi
 
 # --- 5. Create and Enable systemd Service ---
 # The EFFECTIVE_USER variable ensures the service runs as the user who ran the script, not as root
-EFFECTIVE_USER=${SUDO_USER:-$USER}
+# EFFECTIVE_USER=${SUDO_USER:-$USER}
 
-echo "--- Creating systemd service file ---"
-SERVICE_FILE="/etc/systemd/system/ros2-vision.service"
+# echo "--- Creating systemd service file ---"
+# SERVICE_FILE="/etc/systemd/system/ros2-vision.service"
 
-sudo bash -c "cat > $SERVICE_FILE" <<EOT
-[Unit]
-Description=ROS 2 Vision System for FRC
-After=network.target
+# sudo bash -c "cat > $SERVICE_FILE" <<EOT
+# [Unit]
+# Description=ROS 2 Vision System for FRC
+# After=network.target
 
-[Service]
-User=$EFFECTIVE_USER
-WorkingDirectory=$ROS_WS
-ExecStart=/bin/bash -c "source /opt/ros/kilted/setup.bash && source $ROS_WS/install/setup.bash && ros2 launch robot_launch vision_system.launch.py"
-Restart=always
-RestartSec=10
+# [Service]
+# User=$EFFECTIVE_USER
+# WorkingDirectory=$ROS_WS
+# ExecStart=/bin/bash -c "source /opt/ros/kilted/setup.bash && source $ROS_WS/install/setup.bash && ros2 launch robot_launch vision_system.launch.py"
+# Restart=always
+# RestartSec=10
 
-[Install]
-WantedBy=multi-user.target
-EOT
+# [Install]
+# WantedBy=multi-user.target
+# EOT
 
-echo "--- Enabling systemd service ---"
-sudo systemctl daemon-reload
-sudo systemctl enable ros2-vision.service
+# echo "--- Enabling systemd service ---"
+# sudo systemctl daemon-reload
+# sudo systemctl enable ros2-vision.service
 
 # --- Final Instructions ---
-echo ""
-echo "--------------------------------------------------------"
-echo "---          Setup Complete!                         ---"
-echo "--------------------------------------------------------"
-echo ""
-echo "CRITICAL NEXT STEPS:"
-echo ""
-echo "1. PREPARE YOUR GIT REPOSITORY:"
-echo "   The script created a 'config/' directory for your local settings."
-echo "   >> You MUST add this directory to your .gitignore file! <<"
-echo "   Run the following command from your repository root:"
-echo "   echo 'config/' >> .gitignore"
-echo ""
-echo "2. EDIT YOUR LOCAL CONFIGS:"
-echo "   The script created local configuration files in '$CONFIG_DIR/'."
-echo "   You MUST edit these files to match your robot's hardware."
-echo "   - In 'robot_identity.yaml', set a unique 'camera_name'."
-echo "   - In 'camera_tuning.yaml', set the correct 'serial_number'."
-echo ""
-echo "3. REBOOT:"
-echo "   A reboot is required for all changes to take effect."
-echo "   Run 'sudo reboot'"
-echo ""
-echo "After rebooting, the ROS 2 nodes will start automatically."
-echo "Check status with: 'systemctl status ros2-vision.service'"
-echo ""
-```
+# echo ""
+# echo "--------------------------------------------------------"
+# echo "---          Setup Complete!                         ---"
+# echo "--------------------------------------------------------"
+# echo ""
+# echo "CRITICAL NEXT STEPS:"
+# echo ""
+# echo "1. PREPARE YOUR GIT REPOSITORY:"
+# echo "   The script created a 'config/' directory for your local settings."
+# echo "   >> You MUST add this directory to your .gitignore file! <<"
+# echo "   Run the following command from your repository root:"
+# echo "   echo 'config/' >> .gitignore"
+# echo ""
+# echo "2. EDIT YOUR LOCAL CONFIGS:"
+# echo "   The script created local configuration files in '$CONFIG_DIR/'."
+# echo "   You MUST edit these files to match your robot's hardware."
+# echo "   - In 'robot_identity.yaml', set a unique 'camera_name'."
+# echo "   - In 'camera_tuning.yaml', set the correct 'serial_number'."
+# echo ""
+# echo "3. REBOOT:"
+# echo "   A reboot is required for all changes to take effect."
+# echo "   Run 'sudo reboot'"
+# echo ""
+# echo "After rebooting, the ROS 2 nodes will start automatically."
+# echo "Check status with: 'systemctl status ros2-vision.service'"
+# echo ""
