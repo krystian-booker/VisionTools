@@ -23,6 +23,33 @@ sudo apt -y upgrade
 sudo apt install -y ros-kilted-desktop ros-dev-tools ros-kilted-image-proc
 sudo apt-get install -y git wget curl build-essential python3-pip python3-rosdep
 
+# --- FLIR Group Setup ---
+echo "--- Creating and configuring flirimaging group ---"
+# Use '|| true' to prevent script failure if the group already exists
+sudo addgroup --system flirimaging || true
+sudo usermod -a -G flirimaging ${USER}
+
+# --- ADDED: udev Rules for FLIR/Spinnaker ---
+echo "--- Setting up udev rules for FLIR cameras ---"
+# This creates/overwrites the rules file to ensure it's correct
+echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="1e10", GROUP="flirimaging"' | sudo tee /etc/udev/rules.d/40-flir-spinnaker.rules > /dev/null
+echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="1724", GROUP="flirimaging"' | sudo tee -a /etc/udev/rules.d/40-flir-spinnaker.rules > /dev/null
+echo "--- Reloading udev rules ---"
+sudo service udev restart
+sudo udevadm trigger
+
+# --- GRUB Configuration for USB Memory ---
+echo "--- Updating GRUB configuration for USB buffer size ---"
+# Check if the setting is already present
+if ! grep -q "usbcore.usbfs_memory_mb=1000" /etc/default/grub; then
+    # Use sed to replace the line and then update grub
+    sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash usbcore.usbfs_memory_mb=1000"/' /etc/default/grub
+    sudo update-grub
+    echo "GRUB configuration has been updated."
+else
+    echo "GRUB configuration for usbcore.usbfs_memory_mb already set. No changes made."
+fi
+
 # --- 2. Workspace and Environment Setup ---
 HOME_DIR="$HOME"
 BASHRC_PATH="$HOME_DIR/.bashrc"
@@ -37,6 +64,11 @@ fi
 echo "--- Initializing rosdep ---"
 sudo rosdep init || true
 rosdep update
+
+echo "--- Adding Spinnaker GenTL environment variable to .bashrc ---"
+if ! grep -q "export SPINNAKER_GENTL64_CTI" "$BASHRC_PATH"; then
+    echo 'export SPINNAKER_GENTL64_CTI=/opt/ros/${ROS_DISTRO}/lib/spinnaker-gentl/Spinnaker_GenTL.cti' >> "$BASHRC_PATH"
+fi
 
 # --- 3. Setup Local Configuration Files (BEFORE BUILD) ---
 echo "--- Creating local configuration directory at $ROS_WS/config ---"
@@ -67,57 +99,8 @@ if ! grep -q "$ROS_WS/install/setup.bash" "$BASHRC_PATH"; then
     echo "source $ROS_WS/install/setup.bash" >> "$BASHRC_PATH"
 fi
 
-# --- 5. Create and Enable systemd Service ---
-# The EFFECTIVE_USER variable ensures the service runs as the user who ran the script, not as root
-# EFFECTIVE_USER=${SUDO_USER:-$USER}
-
-# echo "--- Creating systemd service file ---"
-# SERVICE_FILE="/etc/systemd/system/ros2-vision.service"
-
-# sudo bash -c "cat > $SERVICE_FILE" <<EOT
-# [Unit]
-# Description=ROS 2 Vision System for FRC
-# After=network.target
-
-# [Service]
-# User=$EFFECTIVE_USER
-# WorkingDirectory=$ROS_WS
-# ExecStart=/bin/bash -c "source /opt/ros/kilted/setup.bash && source $ROS_WS/install/setup.bash && ros2 launch robot_launch vision_system.launch.py"
-# Restart=always
-# RestartSec=10
-
-# [Install]
-# WantedBy=multi-user.target
-# EOT
-
-# echo "--- Enabling systemd service ---"
-# sudo systemctl daemon-reload
-# sudo systemctl enable ros2-vision.service
-
-# --- Final Instructions ---
-# echo ""
-# echo "--------------------------------------------------------"
-# echo "---          Setup Complete!                         ---"
-# echo "--------------------------------------------------------"
-# echo ""
-# echo "CRITICAL NEXT STEPS:"
-# echo ""
-# echo "1. PREPARE YOUR GIT REPOSITORY:"
-# echo "   The script created a 'config/' directory for your local settings."
-# echo "   >> You MUST add this directory to your .gitignore file! <<"
-# echo "   Run the following command from your repository root:"
-# echo "   echo 'config/' >> .gitignore"
-# echo ""
-# echo "2. EDIT YOUR LOCAL CONFIGS:"
-# echo "   The script created local configuration files in '$CONFIG_DIR/'."
-# echo "   You MUST edit these files to match your robot's hardware."
-# echo "   - In 'robot_identity.yaml', set a unique 'camera_name'."
-# echo "   - In 'camera_tuning.yaml', set the correct 'serial_number'."
-# echo ""
-# echo "3. REBOOT:"
-# echo "   A reboot is required for all changes to take effect."
-# echo "   Run 'sudo reboot'"
-# echo ""
-# echo "After rebooting, the ROS 2 nodes will start automatically."
-# echo "Check status with: 'systemctl status ros2-vision.service'"
-# echo ""
+# --- Final Message ---
+echo "----------------------------------------------------------------"
+echo "Script finished!"
+echo "Please run 'sudo reboot' now."
+echo "----------------------------------------------------------------"
